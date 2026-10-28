@@ -22,7 +22,6 @@ export const badRequest = (message: string, details?: unknown) => new HttpError(
 export const unauthorized = (message = "Authentication required") => new HttpError(401, "UNAUTHORIZED", message);
 export const forbidden = (message = "You do not have access to this resource") => new HttpError(403, "FORBIDDEN", message);
 export const notFound = (what = "Resource") => new HttpError(404, "NOT_FOUND", `${what} not found`);
-export const conflict = (message: string) => new HttpError(409, "CONFLICT", message);
 
 export const notFoundHandler: RequestHandler = (req, _res, next) => {
   next(new HttpError(404, "ROUTE_NOT_FOUND", `No route for ${req.method} ${req.path}`));

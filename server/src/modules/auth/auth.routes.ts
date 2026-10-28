@@ -1,8 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Router } from "express";
-import rateLimit from "express-rate-limit";
 import { z } from "zod";
-import { config } from "../../config.js";
 import { pool } from "../../db/pool.js";
 import { HttpError } from "../../lib/errors.js";
 import { parseBody } from "../../lib/validate.js";
@@ -15,17 +13,7 @@ const LoginSchema = z.object({
   password: z.string().min(1, "Password is required").max(200),
 });
 
-// Slow down password guessing: 10 attempts per IP per 15 minutes.
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: config.isTest ? 1000 : 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  handler: (_req, res) =>
-    res.status(429).json({ error: { code: "TOO_MANY_ATTEMPTS", message: "Too many login attempts. Try again in a few minutes." } }),
-});
-
-authRouter.post("/login", loginLimiter, async (req, res) => {
+authRouter.post("/login", async (req, res) => {
   const { email, password } = parseBody(LoginSchema, req);
   const { rows } = await pool.query<{ id: number; name: string; role: AuthUser["role"]; password_hash: string; author_id: string | null }>(
     `SELECT u.id, u.name, u.role, u.password_hash, a.id AS author_id

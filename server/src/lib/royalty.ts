@@ -1,53 +1,43 @@
-// BookLeaf royalty policy, encoded as plain functions. These facts are computed in code and handed to
-// the AI as context. LLMs are unreliable at date arithmetic, so the model is never asked to work out
-// a payout date itself.
+// BookLeaf's royalty policy as plain functions. These numbers are worked out in code and given to
+// the AI as facts, because LLMs are unreliable at date arithmetic.
 
 export const PAYOUT_THRESHOLD_INR = 1000;
 const PAYOUT_WINDOW_DAYS = 45;
 
-const toISODate = (d: Date) => d.toISOString().slice(0, 10);
-
 /**
- * Royalties are calculated per calendar quarter and paid within 45 days of the quarter ending.
- * Returns the date the next payout is due by, plus the most recent quarter whose payout deadline has passed.
+ * Royalties are calculated per quarter and paid within 45 days of the quarter ending.
+ * Returns the date the next payout is due by (YYYY-MM-DD). Assumes calendar quarters.
  */
-export function payoutSchedule(today: Date = new Date()) {
-  const todayISO = toISODate(today);
-  const year = today.getUTCFullYear();
-  // Quarter ends and their payout deadlines from two years back to next year.
+export function nextPayoutDate(today: Date = new Date()): string {
+  const todayISO = today.toISOString().slice(0, 10);
+  // Deadlines for every quarter of last year, this year and next year.
   // Day 0 of a month is the last day of the previous month, so (month 3, day 0) is 31 March.
-  const quarters: { end: string; deadline: string }[] = [];
-  for (let y = year - 2; y <= year + 1; y++) {
-    for (const nextMonth of [3, 6, 9, 12]) {
-      const end = new Date(Date.UTC(y, nextMonth, 0));
-      quarters.push({ end: toISODate(end), deadline: toISODate(new Date(end.getTime() + PAYOUT_WINDOW_DAYS * 86_400_000)) });
+  const deadlines: string[] = [];
+  for (let y = today.getUTCFullYear() - 1; y <= today.getUTCFullYear() + 1; y++) {
+    for (const month of [3, 6, 9, 12]) {
+      const quarterEnd = new Date(Date.UTC(y, month, 0));
+      deadlines.push(new Date(quarterEnd.getTime() + PAYOUT_WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10));
     }
   }
-  const next = quarters.find((q) => q.deadline >= todayISO)!;
-  const lastPassed = quarters.filter((q) => q.deadline < todayISO).at(-1)!;
-  return { nextPayoutBy: next.deadline, lastPassedDeadline: lastPassed.deadline, lastPassedQuarterEnd: lastPassed.end };
+  return deadlines.find((d) => d >= todayISO)!;
 }
 
-interface RoyaltyBook {
-  royaltyPending: number;
-  lastRoyaltyPayoutDate: string | null;
-}
-
-/** Author-level payout status: the ₹1,000 threshold applies to the author's accumulated total, not per book. */
-export function royaltySummary(books: RoyaltyBook[], today: Date = new Date()) {
+/** The ₹1,000 minimum applies to the author's accumulated total across all their books. */
+export function royaltySummary(books: { royaltyPending: number; lastRoyaltyPayoutDate: string | null }[], today?: Date) {
   const totalPending = books.reduce((sum, b) => sum + b.royaltyPending, 0);
-  const meetsThreshold = totalPending >= PAYOUT_THRESHOLD_INR;
-  const { nextPayoutBy, lastPassedDeadline, lastPassedQuarterEnd } = payoutSchedule(today);
-
-  const payoutDates = books.map((b) => b.lastRoyaltyPayoutDate).filter((d): d is string => Boolean(d)).sort();
-  const lastPayoutDate = payoutDates.at(-1) ?? null;
-
-  // The payout for the last closed quarter should have landed between that quarter's end and its
-  // deadline. If the author has an eligible balance and nothing was paid in or after that window,
-  // flag it. This is a signal for staff to check, not proof: pending can include current-quarter sales.
-  const possiblyOverdue = meetsThreshold && (lastPayoutDate === null || lastPayoutDate <= lastPassedQuarterEnd);
-
-  return { totalPending, meetsThreshold, threshold: PAYOUT_THRESHOLD_INR, nextPayoutBy, lastPayoutDate, lastPassedDeadline, possiblyOverdue };
+  const lastPayoutDate =
+    books
+      .map((b) => b.lastRoyaltyPayoutDate)
+      .filter((d): d is string => Boolean(d))
+      .sort()
+      .at(-1) ?? null;
+  return {
+    totalPending,
+    threshold: PAYOUT_THRESHOLD_INR,
+    meetsThreshold: totalPending >= PAYOUT_THRESHOLD_INR,
+    nextPayoutBy: nextPayoutDate(today),
+    lastPayoutDate,
+  };
 }
 
 export type RoyaltySummary = ReturnType<typeof royaltySummary>;

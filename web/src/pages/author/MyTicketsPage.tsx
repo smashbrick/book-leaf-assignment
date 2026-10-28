@@ -14,13 +14,13 @@ export function MyTicketsPage() {
         <h1>My tickets</h1>
         <Link to="/tickets/new" className="btn btn-primary">New ticket</Link>
       </div>
-      {data.data.length === 0 ? (
+      {data.length === 0 ? (
         <EmptyState title="No tickets yet">
           Questions about royalties, ISBNs, printing or your book's status? <Link to="/tickets/new">Raise a ticket</Link> and we'll get back to you.
         </EmptyState>
       ) : (
         <ul className="ticket-list">
-          {data.data.map((t) => (
+          {data.map((t) => (
             <li key={t.id}>
               <Link to={`/tickets/${t.id}`} className="card ticket-row">
                 <div>
@@ -31,7 +31,7 @@ export function MyTicketsPage() {
                 </div>
                 <div className="ticket-row-right">
                   <StatusBadge status={t.status} />
-                  <span className="muted small">Updated {formatDateTime(t.lastMessageAt)}</span>
+                  <span className="muted small">Updated {formatDateTime(t.updatedAt)}</span>
                 </div>
               </Link>
             </li>

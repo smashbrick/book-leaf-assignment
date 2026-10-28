@@ -1,45 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, qs } from "./client";
 import type {
-  AuthorTicketDetail, Book, Draft, Paged, RoyaltySummary, Staff, StaffTicket, StaffTicketDetail, Stats,
+  AuthorTicketDetail, Book, Draft, RoyaltySummary, StaffTicket, StaffTicketDetail,
   TicketBase, TicketCategory, TicketPriority, TicketStatus,
 } from "./types";
 
-// All server state goes through React Query: caching, loading/error states, and re-fetching when
-// a Server-Sent Event says something changed (see useTicketEvents).
+// Server data goes through React Query (caching + loading/error states). Live updates from the
+// server just invalidate these queries (see useTicketEvents).
 
 export const keys = {
-  books: ["books"] as const,
-  tickets: ["tickets"] as const,
   ticketList: (filters: object) => ["tickets", "list", filters] as const,
   ticket: (id: number) => ["tickets", "detail", id] as const,
   draft: (id: number) => ["draft", id] as const,
-  staff: ["staff"] as const,
-  stats: ["stats"] as const,
 };
 
 export const useBooks = () =>
-  useQuery({ queryKey: keys.books, queryFn: () => api<{ data: Book[]; royalty: RoyaltySummary }>("/books") });
+  useQuery({ queryKey: ["books"], queryFn: () => api<{ data: Book[]; royalty: RoyaltySummary }>("/books") });
+
+export const useMyTickets = () =>
+  useQuery({ queryKey: keys.ticketList({}), queryFn: () => api<{ data: TicketBase[] }>("/tickets").then((r) => r.data) });
 
 export interface QueueFilters {
   status?: string;
   category?: string;
   priority?: string;
-  assignee?: string;
   from?: string;
   to?: string;
-  q?: string;
-  sort?: string;
-  page?: number;
 }
-
-export const useMyTickets = () =>
-  useQuery({ queryKey: keys.ticketList({ mine: true }), queryFn: () => api<Paged<TicketBase>>("/tickets?pageSize=100&sort=newest") });
 
 export const useQueue = (filters: QueueFilters) =>
   useQuery({
     queryKey: keys.ticketList(filters),
-    queryFn: () => api<Paged<StaffTicket>>(`/tickets${qs({ ...filters })}`),
+    queryFn: () => api<{ data: StaffTicket[] }>(`/tickets${qs({ ...filters })}`).then((r) => r.data),
     placeholderData: (prev) => prev, // keep the table on screen while filters change
   });
 
@@ -49,7 +41,7 @@ export const useAuthorTicket = (id: number) =>
 export const useStaffTicket = (id: number) =>
   useQuery({ queryKey: keys.ticket(id), queryFn: () => api<{ data: StaffTicketDetail }>(`/tickets/${id}`).then((r) => r.data) });
 
-/** The AI draft. Generated on first load, never auto-refetched, so it can't overwrite an admin's edits. */
+/** The AI draft. Loaded once and never refetched automatically, so it can't overwrite the admin's edits. */
 export const useDraft = (id: number, enabled: boolean) =>
   useQuery({
     queryKey: keys.draft(id),
@@ -57,15 +49,9 @@ export const useDraft = (id: number, enabled: boolean) =>
     enabled,
     retry: false,
     staleTime: Infinity,
-    refetchOnWindowFocus: false,
   });
 
-export const useStaff = () =>
-  useQuery({ queryKey: keys.staff, queryFn: () => api<{ data: Staff[] }>("/admin/staff").then((r) => r.data), staleTime: Infinity });
-
-export const useStats = () => useQuery({ queryKey: keys.stats, queryFn: () => api<{ data: Stats }>("/admin/stats").then((r) => r.data) });
-
-/** After any write, refresh ticket lists and stats. The detail view is updated from the response. */
+/** After a change: show the updated ticket straight away and refresh the lists. */
 function useTicketMutation<TVars>(fn: (vars: TVars) => Promise<{ data: StaffTicketDetail | AuthorTicketDetail }>) {
   const qc = useQueryClient();
   return useMutation({
@@ -73,7 +59,6 @@ function useTicketMutation<TVars>(fn: (vars: TVars) => Promise<{ data: StaffTick
     onSuccess: ({ data }) => {
       qc.setQueryData(keys.ticket(data.id), data);
       void qc.invalidateQueries({ queryKey: ["tickets", "list"] });
-      void qc.invalidateQueries({ queryKey: keys.stats });
     },
   });
 }
@@ -84,7 +69,7 @@ export const useCreateTicket = () =>
   );
 
 export const useSendMessage = (id: number) =>
-  useTicketMutation((body: { body: string; internal?: boolean; usedAiDraft?: boolean; setStatus?: TicketStatus }) =>
+  useTicketMutation((body: { body: string; internal: boolean }) =>
     api<{ data: StaffTicketDetail }>(`/tickets/${id}/messages`, { method: "POST", body }),
   );
 
@@ -95,7 +80,7 @@ export const useUpdateTicket = (id: number) =>
   );
 
 export const useRetryClassification = (id: number) =>
-  useTicketMutation(() => api<{ data: StaffTicketDetail }>(`/tickets/${id}/classification`, { method: "POST" }));
+  useTicketMutation(() => api<{ data: StaffTicketDetail }>(`/tickets/${id}/classify`, { method: "POST" }));
 
 export const useRegenerateDraft = (id: number) => {
   const qc = useQueryClient();

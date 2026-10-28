@@ -1,4 +1,4 @@
-// Response shapes from the REST API (see server/src/openapi.yaml).
+// Response shapes from the REST API (documented in the README).
 
 export type Role = "author" | "admin";
 export interface User {
@@ -39,22 +39,17 @@ export interface Book {
 
 export interface RoyaltySummary {
   totalPending: number;
-  meetsThreshold: boolean;
   threshold: number;
+  meetsThreshold: boolean;
   nextPayoutBy: string;
   lastPayoutDate: string | null;
-  lastPassedDeadline: string;
-  possiblyOverdue: boolean;
 }
 
 export interface Message {
   id: number;
-  senderId: number;
   senderName: string;
-  senderRole: Role;
   kind: "author" | "reply" | "internal_note";
   body: string;
-  usedAiDraft: boolean;
   createdAt: string;
 }
 
@@ -69,7 +64,6 @@ export interface TicketBase {
   bookTitle: string | null;
   createdAt: string;
   updatedAt: string;
-  lastMessageAt: string;
 }
 
 /** Extra fields only admins receive. */
@@ -80,15 +74,10 @@ export interface StaffTicket extends TicketBase {
   aiCategory: TicketCategory | null;
   aiPriority: TicketPriority | null;
   aiReasoning: string | null;
-  aiStatus: "pending" | "done" | "failed" | "skipped";
+  aiStatus: "pending" | "done" | "failed";
   aiError: string | null;
   assigneeId: number | null;
   assigneeName: string | null;
-  firstResponseAt: string | null;
-  resolvedAt: string | null;
-  messageCount: number;
-  slaHours: number;
-  firstResponseOverdue: boolean;
 }
 
 export interface AuthorTicketDetail extends TicketBase {
@@ -101,35 +90,6 @@ export interface StaffTicketDetail extends StaffTicket {
   royalty: RoyaltySummary;
 }
 
-export interface Paged<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
 export interface Draft {
   body: string;
-  model: string;
-  createdAt: string;
-  cached: boolean;
-}
-
-export interface Staff {
-  id: number;
-  name: string;
-  email: string;
-}
-
-export interface Stats {
-  queue: { open: number; inProgress: number; activeCritical: number; unassigned: number; aiFailed: number };
-  ai: {
-    enabled: boolean;
-    model: string;
-    classified: number;
-    categoryOverrides: number;
-    priorityOverrides: number;
-    replies: number;
-    repliesFromAiDraft: number;
-  };
 }

@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { runClassification } from "../src/ai/jobs.js";
 import { setAiClient } from "../src/ai/client.js";
-import { buildDraftContext } from "../src/ai/drafter.js";
 import { KB, sectionsFor } from "../src/ai/knowledge-base.js";
 import { pool } from "../src/db/pool.js";
 import { ADMIN, fakeAi, loginAs, PRIYA, resetDb, sleep } from "./helpers.js";
@@ -80,7 +79,7 @@ describe("classification", () => {
 });
 
 describe("drafts", () => {
-  it("returns 503 AI_UNAVAILABLE (so the UI falls back to manual) when AI is down", async () => {
+  it("returns 503 AI_UNAVAILABLE (so the UI falls back to a manual reply) when AI is down", async () => {
     const id = await newTicket();
     const admin = await loginAs(ADMIN);
     const res = await admin.get(`/api/v1/tickets/${id}/draft`);
@@ -90,24 +89,20 @@ describe("drafts", () => {
     expect((await admin.post(`/api/v1/tickets/${id}/messages`).send({ body: "Manual reply" })).status).toBe(201);
   });
 
-  it("caches the draft and only regenerates on request or when the author writes again", async () => {
-    let n = 0;
+  it("saves the draft so reopening the ticket doesn't call the AI again", async () => {
     const id = await newTicket();
+    let n = 0;
     const calls = fakeAi(() => ({ content: `Draft number ${++n}` }));
     const admin = await loginAs(ADMIN);
 
     expect((await admin.get(`/api/v1/tickets/${id}/draft`)).body.data.body).toBe("Draft number 1");
-    expect((await admin.get(`/api/v1/tickets/${id}/draft`)).body.data).toMatchObject({ body: "Draft number 1", cached: true });
+    expect((await admin.get(`/api/v1/tickets/${id}/draft`)).body.data.body).toBe("Draft number 1");
     expect(calls).toHaveLength(1);
-
+    // "Regenerate" makes a new one
     expect((await admin.post(`/api/v1/tickets/${id}/draft`)).body.data.body).toBe("Draft number 2");
-
-    const priya = await loginAs(PRIYA);
-    await priya.post(`/api/v1/tickets/${id}/messages`).send({ body: "Any update?" });
-    expect((await admin.get(`/api/v1/tickets/${id}/draft`)).body.data.body).toBe("Draft number 3");
   });
 
-  it("sends the book's real numbers and the computed payout date to the model", async () => {
+  it("sends the relevant policy and the book's real numbers, but no contact details", async () => {
     const id = await newTicket();
     const calls = fakeAi(() => ({ content: "ok" }));
     await pool.query("UPDATE tickets SET category = 'royalty_payments' WHERE id = $1", [id]);
@@ -116,30 +111,18 @@ describe("drafts", () => {
 
     const [system, user] = calls[0]!.messages.map((m) => String(m.content));
     expect(system).toContain("Royalty Policy");
-    expect(system).not.toContain("Printing & Quality"); // only the relevant KB slice
+    expect(system).not.toContain("Printing & Quality"); // only the KB section for this category
     expect(user).toContain("Whispers of the Ganges");
-    expect(user).toContain("₹3,570"); // BK001 pending royalty
+    expect(user).toContain("₹3,570"); // BK001's pending royalty
     expect(user).toMatch(/Next scheduled payout date .*: \d{4}-\d{2}-\d{2}/);
-    expect(user).not.toContain("priya.sharma@email.com"); // no contact details sent to the AI
+    expect(user).not.toContain("priya.sharma@email.com");
   });
 });
 
-describe("prompt building", () => {
-  it("sends only the relevant knowledge-base sections per category", () => {
+describe("knowledge base", () => {
+  it("only sends the sections relevant to the ticket's category", () => {
     expect(sectionsFor("printing_quality")).toEqual([KB.printing]);
     expect(sectionsFor("royalty_payments")).not.toContain(KB.isbn);
     expect(sectionsFor("general_inquiry").length).toBeGreaterThan(3);
-  });
-
-  it("keeps only the last 6 messages and clips very long ones", () => {
-    const thread = Array.from({ length: 10 }, (_, i) => ({ from: "author" as const, body: `message ${i} ${"x".repeat(i === 9 ? 5000 : 0)}` }));
-    const ctx = buildDraftContext({
-      ticketId: 1, category: "general_inquiry", subject: "s", authorFirstName: "A", agentFirstName: "B",
-      book: null, royalty: null, thread, internalNotes: [], today: "2026-01-01",
-    });
-    expect(ctx).toContain("[4 earlier message(s) omitted]");
-    expect(ctx).not.toContain("message 3 ");
-    expect(ctx).toContain("message 4 ");
-    expect(ctx).toContain("[…]");
   });
 });

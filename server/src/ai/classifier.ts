@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { config } from "../config.js";
 import { CATEGORY_LABELS, TICKET_CATEGORIES, TICKET_PRIORITIES } from "../modules/tickets/ticket.constants.js";
-import { AiError, runAiCall } from "./client.js";
+import { AiError, chat } from "./client.js";
 
 /**
  * Classifies a ticket into a category and priority in a single call. The JSON schema is sent as a
@@ -61,34 +61,31 @@ ${input.description}
 </description>
 </ticket>`;
 
-  const response = await runAiCall(
-    { purpose: "classify", ticketId: input.ticketId },
-    {
-      model: config.AI_MODEL,
-      // The answer is ~60 tokens of JSON. A tight cap bounds cost if the model rambles.
-      max_tokens: 400,
-      temperature: 0, // same ticket → same classification
-      response_format: {
-        type: "json_schema",
-        json_schema: { name: "ticket_classification", strict: true, schema: CLASSIFICATION_JSON_SCHEMA },
-      },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
+  const response = await chat(`classify ticket ${input.ticketId}`, {
+    model: config.AI_MODEL,
+    // The answer is ~60 tokens of JSON. A tight cap bounds cost if the model rambles.
+    max_tokens: 400,
+    temperature: 0, // same ticket → same classification
+    response_format: {
+      type: "json_schema",
+      json_schema: { name: "ticket_classification", strict: true, schema: CLASSIFICATION_JSON_SCHEMA },
     },
-  );
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userContent },
+    ],
+  });
 
   const text = response.choices[0]?.message?.content;
-  if (!text) throw new AiError("AI returned an empty classification", true);
+  if (!text) throw new AiError("AI returned an empty classification");
   let json: unknown;
   try {
     // Some providers wrap JSON in a ```json fence even in JSON mode
     json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ""));
   } catch {
-    throw new AiError("AI returned malformed JSON for the classification", true);
+    throw new AiError("AI returned malformed JSON for the classification");
   }
   const result = ClassificationSchema.safeParse(json);
-  if (!result.success) throw new AiError("AI classification did not match the expected categories", true);
+  if (!result.success) throw new AiError("AI classification did not match the expected categories");
   return result.data;
 }

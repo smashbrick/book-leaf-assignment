@@ -51,7 +51,6 @@ describe("authors are isolated from each other", () => {
     const { body } = await rohit.get("/api/v1/tickets");
     const rohitsTicket = body.data[0].id;
     expect((await priya.get(`/api/v1/tickets/${rohitsTicket}`)).status).toBe(404);
-    expect((await priya.post(`/api/v1/tickets/${rohitsTicket}/messages`).send({ body: "hi" })).status).toBe(404);
   });
 
   it("won't let an author raise a ticket against someone else's book", async () => {
@@ -66,9 +65,8 @@ describe("authors are isolated from each other", () => {
 });
 
 describe("staff-only data stays staff-only", () => {
-  it("blocks authors from admin endpoints", async () => {
+  it("blocks authors from admin-only actions", async () => {
     const priya = await loginAs(PRIYA);
-    expect((await priya.get("/api/v1/admin/stats")).status).toBe(403);
     expect((await priya.patch("/api/v1/tickets/1").send({ status: "closed" })).status).toBe(403);
     expect((await priya.get("/api/v1/tickets/1/draft")).status).toBe(403);
   });
@@ -98,40 +96,37 @@ describe("staff-only data stays staff-only", () => {
   });
 });
 
-describe("ticket lifecycle", () => {
-  it("moves to in_progress on first reply, assigns the replier, and reopens on author follow-up", async () => {
+describe("ticket management", () => {
+  it("moves a ticket to in_progress when an admin first replies", async () => {
     const priya = await loginAs(PRIYA);
     const id = (
       await priya.post("/api/v1/tickets").send({ bookId: null, subject: "Bio update", description: "How do I update my author bio please?" })
     ).body.data.id;
 
     const admin = await loginAs(ADMIN);
-    const replied = (await admin.post(`/api/v1/tickets/${id}/messages`).send({ body: "You can update it from your dashboard." })).body.data;
-    expect(replied.status).toBe("in_progress");
-    expect(replied.assigneeName).toBe("Neha Gupta");
-    expect(replied.firstResponseAt).not.toBeNull();
-
-    await admin.patch(`/api/v1/tickets/${id}`).send({ status: "resolved" });
-    const followUp = (await priya.post(`/api/v1/tickets/${id}/messages`).send({ body: "I can't find that option." })).body.data;
-    expect(followUp.status).toBe("open");
-
-    await admin.patch(`/api/v1/tickets/${id}`).send({ status: "closed" });
-    const closedReply = await priya.post(`/api/v1/tickets/${id}/messages`).send({ body: "One more thing" });
-    expect(closedReply.status).toBe(409);
+    const replied = await admin.post(`/api/v1/tickets/${id}/messages`).send({ body: "You can update it from your dashboard." });
+    expect(replied.status).toBe(201);
+    expect(replied.body.data.status).toBe("in_progress");
   });
 
-  it("rejects assigning a ticket to a non-admin", async () => {
+  it("lets admins assign tickets to themselves, but not to someone else", async () => {
     const admin = await loginAs(ADMIN);
-    const { rows } = await pool.query("SELECT id FROM users WHERE role = 'author' LIMIT 1");
-    const res = await admin.patch("/api/v1/tickets/1").send({ assigneeId: rows[0].id });
-    expect(res.status).toBe(400);
+    const me = (await admin.get("/api/v1/auth/me")).body.user.id;
+    expect((await admin.patch("/api/v1/tickets/1").send({ assigneeId: me })).body.data.assigneeName).toBe("Neha Gupta");
+    expect((await admin.patch("/api/v1/tickets/1").send({ assigneeId: me + 1 })).status).toBe(400);
+    expect((await admin.patch("/api/v1/tickets/1").send({ assigneeId: null })).body.data.assigneeId).toBeNull();
   });
 
   it("validates queue filters", async () => {
     const admin = await loginAs(ADMIN);
     expect((await admin.get("/api/v1/tickets?status=bogus")).status).toBe(400);
-    const ok = await admin.get("/api/v1/tickets?status=open,in_progress&sort=oldest&pageSize=2");
+    const ok = await admin.get("/api/v1/tickets?status=open,in_progress&from=2020-01-01");
     expect(ok.status).toBe(200);
-    expect(ok.body.data.length).toBeLessThanOrEqual(2);
+    expect(ok.body.data.length).toBeGreaterThan(0);
+  });
+
+  it("doesn't let authors reply through the staff endpoint", async () => {
+    const priya = await loginAs(PRIYA);
+    expect((await priya.post("/api/v1/tickets/5/messages").send({ body: "hi" })).status).toBe(403);
   });
 });

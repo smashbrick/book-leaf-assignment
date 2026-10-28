@@ -3,10 +3,8 @@ import { useEffect, useState } from "react";
 import { keys } from "../api/hooks";
 
 /**
- * Subscribes to the server's Server-Sent Events stream and refreshes affected data.
- * Events only carry a ticket ID. The actual data is re-fetched through the normal REST endpoints,
- * so there is one source of truth and one place where access control happens.
- * EventSource reconnects by itself after network drops or server restarts.
+ * Listens to the server's Server-Sent Events stream. Each event only says which ticket changed;
+ * we then re-fetch it through the normal API. EventSource reconnects on its own if the connection drops.
  */
 export function useTicketEvents(enabled: boolean): boolean {
   const qc = useQueryClient();
@@ -19,7 +17,6 @@ export function useTicketEvents(enabled: boolean): boolean {
       const { ticketId } = JSON.parse(e.data) as { ticketId: number };
       void qc.invalidateQueries({ queryKey: keys.ticket(ticketId) });
       void qc.invalidateQueries({ queryKey: ["tickets", "list"] });
-      void qc.invalidateQueries({ queryKey: keys.stats });
     };
     for (const type of ["ticket.created", "ticket.updated", "message.created"]) source.addEventListener(type, onEvent);
     source.onopen = () => setConnected(true);

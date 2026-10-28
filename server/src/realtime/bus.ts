@@ -1,18 +1,16 @@
 import { EventEmitter } from "node:events";
 
 /**
- * In-process pub/sub for ticket changes. Events carry IDs only, never ticket content: clients
- * re-fetch through the normal REST endpoints, so access control is enforced in one place.
- *
- * This works for a single server instance. With several instances, swap the EventEmitter for
- * Postgres LISTEN/NOTIFY or Redis pub/sub. The publish/subscribe interface stays the same.
+ * In-process pub/sub for ticket changes, used by the SSE endpoint. Events carry only the ticket ID:
+ * the browser re-fetches the ticket through the normal API, so permissions are checked in one place.
+ * (Works for a single server instance, which is all this app needs.)
  */
 export interface TicketEvent {
   type: "ticket.created" | "ticket.updated" | "message.created";
   ticketId: number;
   /** Owner of the ticket. Authors only receive events for their own tickets. */
   authorId: string;
-  /** Staff-only changes (internal notes, AI classification) are never sent to authors. */
+  /** Staff-only changes (internal notes, AI classification) aren't sent to authors. */
   staffOnly?: boolean;
 }
 

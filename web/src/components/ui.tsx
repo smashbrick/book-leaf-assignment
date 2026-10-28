@@ -57,7 +57,6 @@ export function Thread({ messages, viewerRole }: { messages: Message[]; viewerRo
             <div className="msg-meta">
               <strong>{who}</strong>
               {m.kind === "internal_note" && <span className="badge badge-note">Internal note</span>}
-              {viewerRole === "admin" && m.usedAiDraft && <span className="badge badge-ai" title="Sent from an AI draft">AI-assisted</span>}
               <span className="muted">{formatDateTime(m.createdAt)}</span>
             </div>
             <div className="msg-body">{m.body}</div>

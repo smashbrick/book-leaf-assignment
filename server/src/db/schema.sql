@@ -1,6 +1,5 @@
--- BookLeaf support portal: initial schema.
--- Enums are Postgres ENUM types so invalid values are rejected by the database itself,
--- not just by application validation.
+-- BookLeaf support portal schema. Applied by `npm run db:reset`, or on first boot if the DB is empty.
+-- Enums are Postgres ENUM types so the database itself rejects invalid values.
 
 CREATE EXTENSION IF NOT EXISTS citext; -- case-insensitive emails
 
@@ -16,7 +15,7 @@ CREATE TYPE ticket_category AS ENUM (
 );
 CREATE TYPE ticket_priority AS ENUM ('critical', 'high', 'medium', 'low');
 -- Lifecycle of the AI classification for a ticket. 'pending' = queued/running.
-CREATE TYPE ai_status       AS ENUM ('pending', 'done', 'failed', 'skipped');
+CREATE TYPE ai_status       AS ENUM ('pending', 'done', 'failed');
 -- 'author' = message from the author; 'reply' = staff reply visible to the author;
 -- 'internal_note' = staff-only note, never sent to the author.
 CREATE TYPE message_kind    AS ENUM ('author', 'reply', 'internal_note');
@@ -81,8 +80,6 @@ CREATE TABLE tickets (
   ai_error       TEXT,
 
   assignee_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  first_response_at TIMESTAMPTZ,
-  resolved_at    TIMESTAMPTZ,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -95,34 +92,14 @@ CREATE TABLE ticket_messages (
   sender_id    INTEGER NOT NULL REFERENCES users(id),
   kind         message_kind NOT NULL,
   body         TEXT NOT NULL,
-  -- TRUE when a staff reply started from an AI draft (lets us track how often drafts are used).
-  used_ai_draft BOOLEAN NOT NULL DEFAULT FALSE,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ticket_messages_ticket_id_idx ON ticket_messages(ticket_id, created_at);
 
--- One cached AI draft per ticket. Regenerated only when the admin asks, or when the author
--- has written something newer than what the draft was based on.
+-- One saved AI draft per ticket, so reopening a ticket doesn't pay for a new AI call.
+-- Replaced when the admin clicks "Regenerate", deleted once a reply is sent.
 CREATE TABLE ai_drafts (
-  ticket_id        INTEGER PRIMARY KEY REFERENCES tickets(id) ON DELETE CASCADE,
-  body             TEXT NOT NULL,
-  based_on_message_id INTEGER REFERENCES ticket_messages(id) ON DELETE SET NULL,
-  model            TEXT NOT NULL,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+  ticket_id  INTEGER PRIMARY KEY REFERENCES tickets(id) ON DELETE CASCADE,
+  body       TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
--- Every AI call is logged with token counts so cost is observable, not guessed.
-CREATE TABLE ai_calls (
-  id             SERIAL PRIMARY KEY,
-  ticket_id      INTEGER REFERENCES tickets(id) ON DELETE SET NULL,
-  purpose        TEXT NOT NULL,          -- 'classify' | 'draft'
-  model          TEXT NOT NULL,
-  success        BOOLEAN NOT NULL,
-  input_tokens   INTEGER,
-  output_tokens  INTEGER,
-  cached_tokens  INTEGER,                -- prompt tokens served from the provider's cache
-  latency_ms     INTEGER,
-  error          TEXT,
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX ai_calls_created_at_idx ON ai_calls(created_at);

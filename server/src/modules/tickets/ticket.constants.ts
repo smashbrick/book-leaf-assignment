@@ -24,14 +24,3 @@ export const CATEGORY_LABELS: Record<TicketCategory, string> = {
 
 export const TICKET_PRIORITIES = ["critical", "high", "medium", "low"] as const;
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
-
-/**
- * How long a ticket may wait for a first response before it's flagged as overdue in the queue.
- * These are our own defaults. The assignment doesn't specify SLAs.
- */
-export const FIRST_RESPONSE_SLA_HOURS: Record<TicketPriority, number> = {
-  critical: 4,
-  high: 24,
-  medium: 48,
-  low: 72,
-};

@@ -2,17 +2,12 @@ import request from "supertest";
 import type OpenAI from "openai";
 import { createApp } from "../src/app.js";
 import { setAiClient, type AiClient } from "../src/ai/client.js";
-import { dropAll, migrate } from "../src/db/migrate.js";
-import { seed } from "../src/db/seed.js";
+import { resetDatabase } from "../src/db/setup.js";
 
 export const app = createApp();
 
 /** Fresh schema and seed data for each test file. */
-export async function resetDb(): Promise<void> {
-  await dropAll();
-  await migrate();
-  await seed();
-}
+export const resetDb = resetDatabase;
 
 /** Logs in and returns a supertest agent that carries the session cookie. */
 export async function loginAs(email: string, password = email.endsWith("@bookleaf.com") ? "admin123" : "author123") {

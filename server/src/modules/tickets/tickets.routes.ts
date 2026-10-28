@@ -7,28 +7,20 @@ import * as service from "./tickets.service.js";
 
 export const ticketsRouter = Router();
 
-const IdParams = z.object({ id: z.coerce.number().int().positive("Ticket id must be a positive integer") });
-
-// Accepts ?status=open,in_progress or repeated ?status=open&status=in_progress
-const csvEnum = <T extends readonly [string, ...string[]]>(values: T) =>
-  z
-    .union([z.string(), z.array(z.string())])
-    .transform((v) => (Array.isArray(v) ? v : v.split(",")).filter(Boolean))
-    .pipe(z.array(z.enum(values)));
-
+const IdParams = z.object({ id: z.coerce.number().int().positive() });
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
 const ListQuery = z.object({
-  status: csvEnum(TICKET_STATUSES).optional(),
+  // e.g. ?status=open,in_progress
+  status: z
+    .string()
+    .transform((s) => s.split(",").filter(Boolean))
+    .pipe(z.array(z.enum(TICKET_STATUSES)))
+    .optional(),
   category: z.enum(TICKET_CATEGORIES).optional(),
   priority: z.enum([...TICKET_PRIORITIES, "unclassified"]).optional(),
-  assignee: z.enum(["me", "unassigned"]).optional(),
   from: isoDate.optional(),
   to: isoDate.optional(),
-  q: z.string().trim().max(100).optional(),
-  sort: z.enum(["urgency", "newest", "oldest"]).default("urgency"),
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(25),
 });
 
 const CreateBody = z.object({
@@ -48,28 +40,18 @@ const UpdateBody = z
 
 const MessageBody = z.object({
   body: z.string().trim().min(1, "Message cannot be empty").max(5000),
-  // Staff-only fields. Ignored for authors (see service).
-  internal: z.boolean().optional(),
-  usedAiDraft: z.boolean().optional(),
-  setStatus: z.enum(TICKET_STATUSES).optional(),
+  internal: z.boolean().default(false), // true = internal note, never shown to the author
 });
 
-// GET /tickets: authors see their own, admins see the whole queue (with filters)
+// Authors get their own tickets; admins get the full queue (with filters).
 ticketsRouter.get("/", async (req, res) => {
-  const { page, pageSize, ...filters } = parseQuery(ListQuery, req);
-  const result = await service.listTickets(req.user!, {
-    ...filters,
-    statuses: filters.status,
-    limit: pageSize,
-    offset: (page - 1) * pageSize,
-  });
-  res.json({ ...result, page, pageSize });
+  const { status, ...filters } = parseQuery(ListQuery, req);
+  res.json({ data: await service.listTickets(req.user!, { ...filters, statuses: status }) });
 });
 
-// POST /tickets: authors raise a ticket
 ticketsRouter.post("/", requireRole("author"), async (req, res) => {
   const ticket = await service.createTicket(req.user!, parseBody(CreateBody, req));
-  res.status(201).location(`/api/v1/tickets/${ticket.id}`).json({ data: ticket });
+  res.status(201).json({ data: ticket });
 });
 
 ticketsRouter.get("/:id", async (req, res) => {
@@ -77,33 +59,28 @@ ticketsRouter.get("/:id", async (req, res) => {
   res.json({ data: await service.getTicketDetail(req.user!, id) });
 });
 
-// PATCH /tickets/:id: admins change status, override category/priority, assign
 ticketsRouter.patch("/:id", requireRole("admin"), async (req, res) => {
   const { id } = parseParams(IdParams, req);
   res.json({ data: await service.updateTicket(req.user!, id, parseBody(UpdateBody, req)) });
 });
 
-// POST /tickets/:id/messages: author follow-up, admin reply, or admin internal note
-ticketsRouter.post("/:id/messages", async (req, res) => {
+ticketsRouter.post("/:id/messages", requireRole("admin"), async (req, res) => {
   const { id } = parseParams(IdParams, req);
-  const body = parseBody(MessageBody, req);
-  const input = req.user!.role === "admin" ? body : { body: body.body };
-  res.status(201).json({ data: await service.addMessage(req.user!, id, input) });
+  res.status(201).json({ data: await service.addStaffMessage(req.user!, id, parseBody(MessageBody, req)) });
 });
 
-// GET /tickets/:id/draft: AI draft (cached). POST regenerates it.
+// AI draft: GET returns the saved draft (generating it the first time), POST generates a new one.
 ticketsRouter.get("/:id/draft", requireRole("admin"), async (req, res) => {
   const { id } = parseParams(IdParams, req);
-  res.json({ data: await service.getOrCreateDraft(req.user!, id, { regenerate: false }) });
+  res.json({ data: await service.getOrCreateDraft(req.user!, id, false) });
 });
 
 ticketsRouter.post("/:id/draft", requireRole("admin"), async (req, res) => {
   const { id } = parseParams(IdParams, req);
-  res.status(201).json({ data: await service.getOrCreateDraft(req.user!, id, { regenerate: true }) });
+  res.json({ data: await service.getOrCreateDraft(req.user!, id, true) });
 });
 
-// POST /tickets/:id/classification: re-run AI classification after a failure
-ticketsRouter.post("/:id/classification", requireRole("admin"), async (req, res) => {
+ticketsRouter.post("/:id/classify", requireRole("admin"), async (req, res) => {
   const { id } = parseParams(IdParams, req);
-  res.status(202).json({ data: await service.retryClassification(req.user!, id) });
+  res.json({ data: await service.retryClassification(req.user!, id) });
 });

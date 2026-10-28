@@ -1,16 +1,15 @@
 import { pool } from "../db/pool.js";
-import { getTicket, listTicketIdsWithAiStatus, saveClassification, setAiStatus } from "../modules/tickets/tickets.repo.js";
+import { getTicket, listPendingTicketIds, saveClassification, setAiStatus } from "../modules/tickets/tickets.repo.js";
 import { publish } from "../realtime/bus.js";
 import { classifyTicket } from "./classifier.js";
 import { AiError } from "./client.js";
 
 /**
- * Background classification. Tickets are saved first and classified afterwards, so an author
- * never waits on (or is blocked by) the AI. On failure the ticket stays usable, gets marked
- * ai_status='failed' with a reason, and an admin can retry or classify it by hand.
+ * Background classification. Tickets are saved first and classified afterwards, so an author never
+ * waits on (or is blocked by) the AI. On failure the ticket stays usable: it's marked ai_status='failed'
+ * with the reason, and an admin can retry or set the category/priority by hand.
  *
- * Jobs run in-process (fire-and-forget). In production this would be a durable queue
- * (BullMQ, SQS, pg-boss) so jobs survive restarts; requeuePendingClassifications() covers that gap here.
+ * Runs in-process (fire and forget). Fine for this app's size; a bigger system would use a job queue.
  */
 export async function runClassification(ticketId: number): Promise<void> {
   const ticket = await getTicket(pool, ticketId);
@@ -29,11 +28,11 @@ export async function runClassification(ticketId: number): Promise<void> {
     });
     await saveClassification(pool, ticketId, result);
   } catch (err) {
-    const reason = err instanceof AiError ? err.message : "Unexpected error during classification";
     if (!(err instanceof AiError)) console.error(`[ai] classification crashed for ticket ${ticketId}`, err);
+    const reason = err instanceof AiError ? err.message : "Unexpected error during classification";
     await setAiStatus(pool, ticketId, "failed", reason);
   }
-  publish({ type: "ticket.updated", ticketId, authorId: ticket.authorId, staffOnly: true });
+  publish({ type: "ticket.updated", ticketId, authorId: ticket.authorId, staffOnly: true }); // admins' queue refreshes live
 }
 
 /** Starts classification without awaiting it. Errors are already handled inside runClassification. */
@@ -43,12 +42,9 @@ export function enqueueClassification(ticketId: number): void {
   });
 }
 
-/**
- * On boot, pick up tickets left 'pending' (seeded tickets, or jobs lost to a restart).
- * Runs sequentially so a backlog doesn't burst through a free-tier rate limit.
- */
+/** On startup, classify tickets still 'pending'. One at a time, to stay under free-tier rate limits. */
 export async function requeuePendingClassifications(): Promise<void> {
-  const ids = await listTicketIdsWithAiStatus(pool, "pending");
+  const ids = await listPendingTicketIds(pool);
   if (!ids.length) return;
   console.log(`[ai] classifying ${ids.length} pending ticket(s)`);
   for (const id of ids) await runClassification(id);
