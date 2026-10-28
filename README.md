@@ -132,7 +132,7 @@ Nothing goes to the author until the admin presses Send.
 That works out to roughly 750 tokens in / 60 out per classification, and about 1,200 in / 350 out per draft.
 
 ### Model choice
-I wanted this project to cost nothing to build and run, so during development I **ran a local model through Ollama** (`llama3.2`, a 3B model that runs fine on a laptop). It's free, needs no account, and no author data leaves the machine. Classifying a ticket into six categories and writing a short templated email are manageable for a small model, because the prompt gives it the policy and the facts it needs.
+I wanted this project to cost nothing to build and run, so the default is a **local model through Ollama** (`llama3.2`, a small 3B model that runs on a laptop). It's free, needs no account, and no author data leaves the machine. For my own testing I used Gemini's free tier. Classifying a ticket into six categories and writing a short templated email are manageable for a small model, because the prompt gives it the policy and the facts it needs.
 
 The code isn't tied to Ollama. It uses the OpenAI-compatible Chat Completions format, which most providers support, so **you can test it with any key by changing three env variables**:
 
