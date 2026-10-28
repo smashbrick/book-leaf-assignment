@@ -59,7 +59,7 @@ Other commands: `npm test` (needs a `bookleaf_test` database: `docker compose ex
 | `DATABASE_SSL` | `true` for hosted Postgres (e.g. Neon) |
 | `JWT_SECRET` | Signs login sessions |
 | `AI_API_KEY` | Optional. Without it the AI features switch off |
-| `AI_BASE_URL`, `AI_MODEL` | Default to Gemini. Any OpenAI-compatible API works |
+| `AI_BASE_URL`, `AI_MODEL` | Default to Gemini. See "Model choice" below for Groq, Claude or OpenAI |
 
 ---
 
@@ -127,7 +127,18 @@ Nothing goes to the author until the admin presses Send.
 That works out to roughly 750 tokens in / 60 out per classification, and about 1,200 in / 350 out per draft.
 
 ### Model choice
-**Gemini Flash-Lite**, called through Gemini's OpenAI-compatible API. Classifying into six categories and writing a short templated email are easy tasks for a small model; the quality comes from the prompt and the facts it's given. The free tier means the demo costs nothing. Because I used the OpenAI-compatible format, switching to Claude Haiku or GPT-4o-mini only means changing `AI_BASE_URL`, `AI_MODEL` and `AI_API_KEY`.
+For this submission I used **Gemini Flash-Lite on Google's free tier**, to keep the project at zero cost. Classifying into six categories and writing a short templated email are easy tasks for a small model; the quality comes from the prompt and the facts it's given.
+
+The code isn't tied to Gemini. It uses the OpenAI-compatible Chat Completions format, which most providers support, so **you can run it with your own key by changing three env variables**:
+
+| Provider | `AI_BASE_URL` | `AI_MODEL` | Cost |
+|---|---|---|---|
+| Google Gemini (default) | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-flash-lite-latest` | Free tier |
+| Groq | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | Free tier |
+| Anthropic Claude | `https://api.anthropic.com/v1/` | `claude-haiku-5-5` | Paid |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | Paid |
+
+To make this work everywhere, the prompt itself asks for JSON (not every provider supports `response_format`), every AI answer is checked with Zod, and I don't set `temperature`, since current Claude models reject values below 1 through this API. If BookLeaf settled on Claude for production, I'd switch to Anthropic's native SDK to get prompt caching and native structured outputs. Anthropic describes its OpenAI-compatible layer as mainly for testing and comparing models.
 
 **API key:** it's only read from environment variables on the server, and the browser never sees it. `.env` is in `.gitignore`.
 

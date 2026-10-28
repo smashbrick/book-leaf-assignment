@@ -119,7 +119,6 @@ export async function draftReply(input: DraftInput): Promise<string> {
     model: config.AI_MODEL,
     // ~220 words is ~350 tokens. The cap leaves headroom without paying for runaway output.
     max_tokens: 1200,
-    temperature: 0.4, // a little variation reads more human. Facts come from the context, not creativity.
     messages: [
       { role: "system", content: `${RULES_PROMPT}\n\n${categoryPrompt(input.category)}` },
       { role: "user", content: buildDraftContext(input) },
