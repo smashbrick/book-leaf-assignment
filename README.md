@@ -4,7 +4,7 @@ A support portal with two sides:
 - **Authors** log in, see their books and royalties, raise support tickets, and watch for replies.
 - **The BookLeaf team** works through a ticket queue. AI sorts each ticket into a category and priority, and drafts a reply from BookLeaf's knowledge base that the admin edits before sending.
 
-**Live demo:** `<add deployed URL>`
+**Quick links:** [Setup](#running-it-locally) · [Assumptions and notes](#assumptions-and-notes) · [How the AI works](#how-the-ai-works) · [API](#api) · [Write-up](WRITEUP.md)
 
 ## Test logins
 
@@ -43,7 +43,7 @@ You need Node 22.9+ and Docker (or your own Postgres).
 
 ```bash
 npm install
-cp .env.example .env        # set JWT_SECRET to any long random string, and AI_API_KEY (below)
+cp .env.example .env        # works as-is for local use (AI setup below)
 docker compose up -d        # starts Postgres on port 5433
 npm run db:reset            # creates the tables and loads the sample data
 npm run dev                 # API on :4000, app on http://localhost:5173
@@ -174,7 +174,7 @@ The bigger saving is choosing a small model: the same prompts cost ~40x more on 
 
 **Short version:** I treated the model as a setting, not something baked into the code.
 
-- **For building and learning, a local LLM.** Since this is a take-home project, I wanted to keep it free and learn how far a small open model can go. The default is **[Ollama](https://ollama.com) running `llama3.2` locally**: no account, no cost, and no author data leaves the machine. For quick testing I also used **Gemini's free tier**, which the live demo uses too (free hosting can't run a local model).
+- **For building and learning, a local LLM.** Since this is a take-home project, I wanted to keep it free and learn how far a small open model can go. The default is **[Ollama](https://ollama.com) running `llama3.2` locally**: no account, no cost, and no author data leaves the machine. For quick testing I also used **Gemini's free tier**, which is the fastest way to try the AI: a free key and no install.
 - **For BookLeaf, whatever provider you already use.** The app talks to the AI through the OpenAI-compatible Chat Completions format, which almost every provider supports, so switching is three env variables, not a code change:
 
 | Provider | `AI_BASE_URL` | `AI_MODEL` | `AI_API_KEY` | Cost |
@@ -251,6 +251,27 @@ Values: status `open | in_progress | resolved | closed` · priority `critical | 
 - **Tickets:** the first reply moves the ticket to In Progress; you can only assign tickets to yourself; filters are validated.
 - **AI** (with a fake AI, so no real calls): classification is saved; an admin's choice is never overwritten; rate limits, broken JSON and invented categories are handled; drafts fall back to manual when the AI is down; drafts are reused; the prompt contains the right knowledge-base section and the book's real numbers, and no email address.
 - **Royalty dates:** the next payout date and the ₹1,000 minimum.
+
+## Assumptions and notes
+
+**Assumptions** (where the brief left room for interpretation)
+1. **Royalty quarters are calendar quarters** (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec). With "paid within 45 days", payout deadlines are 15 May, 14 Aug, 14 Nov and 14 Feb.
+2. **The ₹1,000 minimum payout applies to the author's total** pending across all their books ("accumulated royalties"), not to each book separately.
+3. **"Today" is the real current date.** The dataset's last payout dates are from 2025, so some balances look long overdue, and the AI treats them that way (it escalates them).
+4. **Money is whole rupees**, as in the dataset, stored as integers.
+5. **Authors can see replies but not reply back.** The brief's "My Tickets" asks for the status, the original query and the team's responses. Author replies would be the next feature.
+6. **Admins assign tickets to themselves** (as the brief says), not to other admins.
+7. **Attachments are UI only**, as the brief allows.
+8. **Admin accounts:** the dataset has no staff, so I added two demo admins. All authors use the demo password `author123`.
+9. **Sample tickets:** five tickets based on the brief's examples are seeded so the admin queue isn't empty. They're classified by the AI when the server starts, not hand-labelled.
+10. **Knowledge base:** used as written. One fact from the brief's example table ("metadata updates take 3–5 business days") is also added to the ISBN & Metadata section, where it belongs.
+11. **Priorities:** the brief doesn't define them beyond examples, so the rules come from those examples and the KB (e.g. ISBN errors are high priority). No response-time targets (SLAs) are defined.
+12. **Cost estimates** assume 5,000 tickets a month, which is my guess for a 22,000-title catalogue.
+
+**Notes**
+- **No API key is included.** Use a local Ollama model (default, free) or add your own key in `.env`. Without either, the app runs in manual mode: tickets show as "Unclassified" and admins write replies themselves.
+- Tested on macOS with Node 23 and Postgres 17 (via Docker). The AI was tested with Gemini Flash-Lite.
+- `npm run db:reset` restores the original data at any time.
 
 ## Deploying
 

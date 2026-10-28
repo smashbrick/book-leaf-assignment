@@ -14,7 +14,7 @@ I also made sure the app still works when the AI doesn't. Tickets are saved befo
 - **Plain SQL instead of an ORM.** Less magic, and the schema is easy to read in one file.
 - **The AI job runs inside the server process, not a queue.** Fine for this size. Tickets still waiting are picked up again after a restart.
 - **Drafts are made when an admin opens a ticket, then saved,** instead of for every ticket upfront. You only pay for drafts that are used.
-- **Free AI only: a local Ollama model by default, plus Gemini's free tier for testing,** all through the OpenAI-compatible API. Nothing cost money, and the local option keeps data on the machine. Anyone can plug in their own key (Gemini, Groq, Claude, OpenAI) by changing config, and the live demo uses Gemini's free tier. The trade-off is that a small local model writes plainer drafts than a hosted one.
+- **Free AI only: a local Ollama model by default, plus Gemini's free tier for testing,** all through the OpenAI-compatible API. Nothing cost money, and the local option keeps data on the machine. Anyone can plug in their own key (Gemini, Groq, Claude, OpenAI) by changing config. The trade-off is that a small local model writes plainer drafts than a hosted one.
 - **Skipped:** real file uploads, author follow-up replies, email notifications.
 
 ## Turning it into a production system
