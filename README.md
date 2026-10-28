@@ -49,7 +49,12 @@ npm run db:reset            # creates the tables and loads the sample data
 npm run dev                 # API on :4000, app on http://localhost:5173
 ```
 
-**AI key:** I used Google Gemini's free tier. Get a key at <https://aistudio.google.com/apikey> and put it in `AI_API_KEY`. The app also works without a key: tickets stay "Unclassified" and admins write replies themselves.
+**AI:** by default the app uses a **local model through [Ollama](https://ollama.com)**, which is free and needs no API key:
+```bash
+brew install ollama && ollama serve    # or install the Ollama desktop app
+ollama pull llama3.2                   # ~2 GB, runs fine on a laptop
+```
+To use a hosted model instead (Gemini, Groq, Claude, OpenAI), set `AI_BASE_URL`, `AI_MODEL` and `AI_API_KEY` in `.env`. There's a table under [Model choice](#model-choice). The app also works with no AI at all: tickets stay "Unclassified" and admins write replies themselves.
 
 Other commands: `npm test` (needs a `bookleaf_test` database: `docker compose exec db psql -U bookleaf -c "CREATE DATABASE bookleaf_test"`), `npm run build && npm start` (production build on one port), `npm run typecheck`.
 
@@ -58,8 +63,8 @@ Other commands: `npm test` (needs a `bookleaf_test` database: `docker compose ex
 | `DATABASE_URL` | Postgres connection string |
 | `DATABASE_SSL` | `true` for hosted Postgres (e.g. Neon) |
 | `JWT_SECRET` | Signs login sessions |
-| `AI_API_KEY` | Optional. Without it the AI features switch off |
-| `AI_BASE_URL`, `AI_MODEL` | Default to Gemini. See "Model choice" below for Groq, Claude or OpenAI |
+| `AI_BASE_URL`, `AI_MODEL` | Default to local Ollama (`http://localhost:11434/v1`, `llama3.2`) |
+| `AI_API_KEY` | Only needed for hosted providers. See [Model choice](#model-choice) |
 
 ---
 
@@ -127,18 +132,21 @@ Nothing goes to the author until the admin presses Send.
 That works out to roughly 750 tokens in / 60 out per classification, and about 1,200 in / 350 out per draft.
 
 ### Model choice
-For this submission I used **Gemini Flash-Lite on Google's free tier**, to keep the project at zero cost. Classifying into six categories and writing a short templated email are easy tasks for a small model; the quality comes from the prompt and the facts it's given.
+I wanted this project to cost nothing to build and run, so during development I **ran a local model through Ollama** (`llama3.2`, a 3B model that runs fine on a laptop). It's free, needs no account, and no author data leaves the machine. Classifying a ticket into six categories and writing a short templated email are manageable for a small model, because the prompt gives it the policy and the facts it needs.
 
-The code isn't tied to Gemini. It uses the OpenAI-compatible Chat Completions format, which most providers support, so **you can run it with your own key by changing three env variables**:
+The code isn't tied to Ollama. It uses the OpenAI-compatible Chat Completions format, which most providers support, so **you can test it with any key by changing three env variables**:
 
-| Provider | `AI_BASE_URL` | `AI_MODEL` | Cost |
-|---|---|---|---|
-| Google Gemini (default) | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-flash-lite-latest` | Free tier |
-| Groq | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | Free tier |
-| Anthropic Claude | `https://api.anthropic.com/v1/` | `claude-haiku-5-5` | Paid |
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | Paid |
+| Provider | `AI_BASE_URL` | `AI_MODEL` | `AI_API_KEY` | Cost |
+|---|---|---|---|---|
+| Ollama (default) | `http://localhost:11434/v1` | `llama3.2` | not needed | Free, runs locally |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-flash-lite-latest` | from AI Studio | Free tier |
+| Groq | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | from Groq console | Free tier |
+| Anthropic Claude | `https://api.anthropic.com/v1/` | `claude-haiku-5-5` | from Anthropic console | Paid |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | from OpenAI | Paid |
 
-To make this work everywhere, the prompt itself asks for JSON (not every provider supports `response_format`), every AI answer is checked with Zod, and I don't set `temperature`, since current Claude models reject values below 1 through this API. If BookLeaf settled on Claude for production, I'd switch to Anthropic's native SDK to get prompt caching and native structured outputs. Anthropic describes its OpenAI-compatible layer as mainly for testing and comparing models.
+The **live demo** uses Gemini's free tier, because free hosting can't run a local model.
+
+To make every provider work, the prompt itself asks for JSON (not every provider supports `response_format`), every AI answer is checked with Zod, and I don't set `temperature`, since current Claude models reject values below 1 through this API. A small local model writes plainer drafts than a hosted one, so the quality you see depends on the model you plug in. If BookLeaf settled on Claude for production, I'd switch to Anthropic's native SDK to get prompt caching and native structured outputs. Anthropic describes its OpenAI-compatible layer as mainly for testing and comparing models.
 
 **API key:** it's only read from environment variables on the server, and the browser never sees it. `.env` is in `.gitignore`.
 
@@ -198,7 +206,7 @@ Values: status `open | in_progress | resolved | closed` · priority `critical | 
 
 ## Deploying
 
-`render.yaml` sets up a free Render web service. For the database I used a free Postgres from Neon. Set `DATABASE_URL`, `DATABASE_SSL=true` and `AI_API_KEY` in Render. On first start, the app creates the tables and loads the sample data by itself.
+`render.yaml` sets up a free Render web service. For the database I used a free Postgres from Neon. Set `DATABASE_URL`, `DATABASE_SSL=true` and `AI_API_KEY` (a Gemini free-tier key) in Render. Free hosting can't run Ollama, which is why the deployed version uses a hosted model. On first start, the app creates the tables and loads the sample data by itself.
 
 ## Limitations / what I'd do with more time
 - Attachments are UI only. I'd add real uploads to cloud storage.
@@ -206,5 +214,5 @@ Values: status `open | in_progress | resolved | closed` · priority `critical | 
 - The AI classification runs inside the web server process. That's fine at this size, but a bigger system would use a job queue.
 - Live updates work for a single server. More than one server would need something like Redis to share events.
 - I'd measure AI accuracy with a set of real past tickets before trusting the priorities fully. The AI's original answer is already stored next to any admin override, so that data builds up as the team uses it.
-- The Gemini free tier has rate limits, and Google can use free-tier data to improve its models. For real author data I'd use a paid tier.
+- Small local models write plainer drafts than hosted ones, and they're slower on a laptop (a draft can take 10–30 seconds). Gemini's free tier is fast but rate-limited, and Google can use free-tier data to improve its models. For real author data I'd use a paid provider with a data-processing agreement.
 - I assumed calendar quarters (Jan–Mar, …) for royalty payouts, and that the ₹1,000 minimum is per author, not per book.

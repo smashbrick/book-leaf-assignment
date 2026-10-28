@@ -10,12 +10,13 @@ const EnvSchema = z.object({
   DATABASE_SSL: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   // The AI provider is anything that speaks the OpenAI-compatible Chat Completions API.
-  // Default is Google Gemini's free tier. Groq/OpenRouter/OpenAI work by changing these three values.
-  // Optional on purpose: without a key the app runs in "AI unavailable" mode and degrades gracefully.
+  // Default: a local model through Ollama (free, nothing leaves the machine, no key needed).
+  // Gemini, Groq, Claude or OpenAI work by setting these three values (see .env.example).
+  AI_BASE_URL: z.url().default("http://localhost:11434/v1"),
+  AI_MODEL: z.string().default("llama3.2"),
   AI_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
-  AI_BASE_URL: z.url().default("https://generativelanguage.googleapis.com/v1beta/openai/"),
-  AI_MODEL: z.string().default("gemini-flash-lite-latest"),
-  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
+  // Generous because a local model on a laptop can take a while, especially on its first call.
+  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -29,5 +30,6 @@ export const config = {
   ...parsed.data,
   isProd: parsed.data.NODE_ENV === "production",
   isTest: parsed.data.NODE_ENV === "test",
-  aiEnabled: Boolean(parsed.data.AI_API_KEY),
+  // Hosted providers need a key; a local model (Ollama on localhost) doesn't.
+  aiEnabled: Boolean(parsed.data.AI_API_KEY) || ["localhost", "127.0.0.1"].includes(new URL(parsed.data.AI_BASE_URL).hostname),
 };
