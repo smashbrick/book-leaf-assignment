@@ -56,7 +56,10 @@ export interface ClassifyInput {
 }
 
 export async function classifyTicket(input: ClassifyInput): Promise<Classification> {
-  const userContent = `<ticket>
+  // Today's date lets the model judge how long a problem has lasted ("not paid since July 2024").
+  const userContent = `Today's date: ${new Date().toISOString().slice(0, 10)}
+
+<ticket>
 <book>${input.bookContext ?? "General / account level (no specific book)"}</book>
 <subject>${input.subject}</subject>
 <description>
