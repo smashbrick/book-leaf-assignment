@@ -178,7 +178,7 @@ Status codes: `400` invalid input · `401` not logged in · `403` wrong role · 
 ### Tickets
 | Endpoint | Who | Description |
 |---|---|---|
-| `GET /tickets` | author, admin | Authors: their own tickets. Admins: all tickets, most urgent first. Filters: `status` (comma-separated, e.g. `open,in_progress`), `category`, `priority` (or `unclassified`), `from` and `to` (`YYYY-MM-DD`). |
+| `GET /tickets` | author, admin | Authors: their own tickets, each with `latestReply` (BookLeaf's most recent reply, or `null`). Admins: all tickets with AI fields and assignee, most urgent first. Filters: `status` (comma-separated, e.g. `open,in_progress`), `category`, `priority` (or `unclassified`), `from` and `to` (`YYYY-MM-DD`). |
 | `POST /tickets` | author | Body `{ bookId \| null, subject, description }`. `bookId: null` means General / Account. Returns `201` with the ticket. AI classification happens afterwards. |
 | `GET /tickets/:id` | author (own), admin | The ticket with its `messages`. Admins also get internal notes, AI fields, and the author's `book` and `royalty` info. |
 | `PATCH /tickets/:id` | admin | Any of `{ status, category, priority, assigneeId }`. `assigneeId` must be your own ID (assign to yourself) or `null`. |
@@ -187,11 +187,19 @@ Status codes: `400` invalid input · `401` not logged in · `403` wrong role · 
 | `POST /tickets/:id/draft` | admin | Generates a new draft (Regenerate). |
 | `POST /tickets/:id/classify` | admin | Retries AI classification after a failure. |
 
+**Try it with curl** (the cookie file keeps you logged in):
+```bash
+curl -c cookies.txt -X POST localhost:4000/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"admin@bookleaf.com","password":"admin123"}'
+curl -b cookies.txt "localhost:4000/api/v1/tickets?status=open,in_progress&priority=high"
+```
+
 Values: status `open | in_progress | resolved | closed` · priority `critical | high | medium | low` · category `royalty_payments | isbn_metadata | printing_quality | distribution_availability | book_status_production | general_inquiry`.
 
-### Live updates
+### Live updates and health
 | Endpoint | Description |
 |---|---|
+| `GET /health` | Public. Returns `{ "status": "ok" }` (used by the host's health check). |
 | `GET /events` | Server-Sent Events stream. Events are `ticket.created`, `ticket.updated` and `message.created`, each with data `{ "ticketId": 12 }`. Authors only receive events for their own tickets, and never for internal notes or AI changes. |
 
 ---
