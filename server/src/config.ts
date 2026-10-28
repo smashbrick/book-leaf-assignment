@@ -6,8 +6,6 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  // Set to "true" when the Postgres host requires TLS (most managed providers' public endpoints).
-  DATABASE_SSL: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   // The AI provider is anything that speaks the OpenAI-compatible Chat Completions API.
   // Default: a local model through Ollama (free, nothing leaves the machine, no key needed).
@@ -15,8 +13,6 @@ const EnvSchema = z.object({
   AI_BASE_URL: z.url().default("http://localhost:11434/v1"),
   AI_MODEL: z.string().default("llama3.2"),
   AI_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
-  // Generous because a local model on a laptop can take a while, especially on its first call.
-  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

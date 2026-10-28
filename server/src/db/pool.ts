@@ -4,11 +4,7 @@ import { config } from "../config.js";
 // Return DATE columns as "YYYY-MM-DD" strings instead of JS Dates shifted into the server's timezone.
 pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v);
 
-export const pool = new pg.Pool({
-  connectionString: config.DATABASE_URL,
-  // Managed providers' public endpoints require TLS; local Docker and private networks don't.
-  ssl: config.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
-});
+export const pool = new pg.Pool({ connectionString: config.DATABASE_URL });
 
 export type Queryable = Pick<pg.Pool, "query">;
 

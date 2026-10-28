@@ -120,7 +120,7 @@ Every endpoint, with who can call it, inputs, outputs and errors: **[API.md](API
 9. **The knowledge base is used as written.** The "metadata updates take 3–5 business days" fact from the brief's example table is also added to the ISBN & Metadata section.
 10. **No API key is included.** Use Ollama, add your own key, or run without AI.
 
-Tested on macOS with Node 23 and Postgres 17. `npm run db:reset` restores the original data at any time. A `render.yaml` is included for optional free deployment on Render.
+Tested on macOS with Node 23 and Postgres 17. `npm run db:reset` restores the original data at any time.
 
 ## What I'd do with more time
 - Real attachment uploads, author replies on tickets, email notifications.

@@ -14,7 +14,8 @@ export type AiClient = Pick<OpenAI, "chat">;
 
 let client: AiClient | null = config.aiEnabled
   ? // Ollama ignores the key, but the SDK requires one, hence the placeholder.
-    new OpenAI({ apiKey: config.AI_API_KEY ?? "ollama", baseURL: config.AI_BASE_URL, timeout: config.AI_TIMEOUT_MS, maxRetries: 2 })
+    // 60s timeout: a local model on a laptop can be slow, especially on its first call.
+    new OpenAI({ apiKey: config.AI_API_KEY ?? "ollama", baseURL: config.AI_BASE_URL, timeout: 60_000, maxRetries: 2 })
   : null;
 
 /** Lets tests swap in a fake client (or null to simulate "no API key"). */

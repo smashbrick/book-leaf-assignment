@@ -96,21 +96,18 @@ export async function seed(): Promise<void> {
   await withTransaction(async (db) => {
     for (const admin of DEMO_ADMINS) {
       await db.query(
-        `INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, 'admin')
-         ON CONFLICT (email) DO NOTHING`,
+        `INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, 'admin')`,
         [admin.email, adminHash, admin.name],
       );
     }
 
     for (const a of raw.authors) {
       const { rows } = await db.query<{ id: number }>(
-        `INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, 'author')
-         ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
+        `INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, 'author') RETURNING id`,
         [a.email, authorHash, a.name],
       );
       await db.query(
-        `INSERT INTO authors (id, user_id, phone, city, joined_date) VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (id) DO NOTHING`,
+        `INSERT INTO authors (id, user_id, phone, city, joined_date) VALUES ($1, $2, $3, $4, $5)`,
         [a.author_id, rows[0]!.id, a.phone, a.city, a.joined_date],
       );
       for (const b of a.books) {
@@ -118,8 +115,7 @@ export async function seed(): Promise<void> {
           `INSERT INTO books (id, author_id, title, isbn, genre, publication_date, status, mrp,
              author_royalty_per_copy, total_copies_sold, total_royalty_earned, royalty_paid,
              royalty_pending, last_royalty_payout_date, print_partner, available_on)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-           ON CONFLICT (id) DO NOTHING`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
           [
             b.book_id, a.author_id, b.title, b.isbn, b.genre, b.publication_date, b.status, b.mrp,
             b.author_royalty_per_copy, b.total_copies_sold, b.total_royalty_earned, b.royalty_paid,
@@ -129,22 +125,18 @@ export async function seed(): Promise<void> {
       }
     }
 
-    // Only add sample tickets to an empty database, so re-running seed never duplicates them.
-    const { rows: existing } = await db.query("SELECT 1 FROM tickets LIMIT 1");
-    if (existing.length === 0) {
-      for (const t of SAMPLE_TICKETS) {
-        const created = new Date(Date.now() - t.hoursAgo * 3600_000);
-        const { rows } = await db.query<{ id: number }>(
-          `INSERT INTO tickets (author_id, book_id, subject, description, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $5) RETURNING id`,
-          [t.authorId, t.bookId, t.subject, t.description, created],
-        );
-        await db.query(
-          `INSERT INTO ticket_messages (ticket_id, sender_id, kind, body, created_at)
-           SELECT $1, a.user_id, 'author', $2, $3 FROM authors a WHERE a.id = $4`,
-          [rows[0]!.id, t.description, created, t.authorId],
-        );
-      }
+    for (const t of SAMPLE_TICKETS) {
+      const created = new Date(Date.now() - t.hoursAgo * 3600_000);
+      const { rows } = await db.query<{ id: number }>(
+        `INSERT INTO tickets (author_id, book_id, subject, description, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $5) RETURNING id`,
+        [t.authorId, t.bookId, t.subject, t.description, created],
+      );
+      await db.query(
+        `INSERT INTO ticket_messages (ticket_id, sender_id, kind, body, created_at)
+         SELECT $1, a.user_id, 'author', $2, $3 FROM authors a WHERE a.id = $4`,
+        [rows[0]!.id, t.description, created, t.authorId],
+      );
     }
   });
   console.log(`[seed] ${raw.authors.length} authors, ${DEMO_ADMINS.length} admins, sample tickets ready`);
