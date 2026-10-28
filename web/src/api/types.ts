@@ -62,6 +62,7 @@ export interface TicketBase {
   category: TicketCategory | null;
   bookId: string | null;
   bookTitle: string | null;
+  latestReply: string | null;
   createdAt: string;
   updatedAt: string;
 }

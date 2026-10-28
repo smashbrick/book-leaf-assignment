@@ -21,6 +21,8 @@ export interface TicketRow {
   aiError: string | null;
   assigneeId: number | null;
   assigneeName: string | null;
+  /** The most recent reply from BookLeaf, shown on the author's ticket list. */
+  latestReply: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +41,8 @@ const TICKET_SELECT = `
          t.ai_category AS "aiCategory", t.ai_priority AS "aiPriority", t.ai_reasoning AS "aiReasoning",
          t.ai_status AS "aiStatus", t.ai_error AS "aiError",
          t.assignee_id AS "assigneeId", asg.name AS "assigneeName",
+         (SELECT body FROM ticket_messages WHERE ticket_id = t.id AND kind = 'reply'
+          ORDER BY created_at DESC, id DESC LIMIT 1) AS "latestReply",
          t.created_at AS "createdAt", t.updated_at AS "updatedAt"
   FROM tickets t
   JOIN authors a ON a.id = t.author_id

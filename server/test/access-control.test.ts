@@ -91,6 +91,10 @@ describe("staff-only data stays staff-only", () => {
     expect(authorView).not.toHaveProperty("aiCategory");
     expect(authorView).not.toHaveProperty("assigneeId");
 
+    // The author's ticket list shows the latest staff reply, never the internal note.
+    const listed = (await priya.get("/api/v1/tickets")).body.data.find((t: { id: number }) => t.id === id);
+    expect(listed.latestReply).toBe("Hi Priya, looking into this now.");
+
     const staffView = (await admin.get(`/api/v1/tickets/${id}`)).body.data;
     expect(staffView.messages.map((m: { kind: string }) => m.kind)).toEqual(["author", "internal_note", "reply"]);
   });

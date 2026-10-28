@@ -14,8 +14,8 @@ import * as repo from "./tickets.repo.js";
 
 /** What authors get back: no priority, AI fields or assignee. Those are for the support team. */
 function authorView(t: repo.TicketRow) {
-  const { id, subject, description, status, category, bookId, bookTitle, createdAt, updatedAt } = t;
-  return { id, subject, description, status, category, bookId, bookTitle, createdAt, updatedAt };
+  const { id, subject, description, status, category, bookId, bookTitle, latestReply, createdAt, updatedAt } = t;
+  return { id, subject, description, status, category, bookId, bookTitle, latestReply, createdAt, updatedAt };
 }
 
 const viewFor = (user: AuthUser, t: repo.TicketRow) => (user.role === "admin" ? t : authorView(t));

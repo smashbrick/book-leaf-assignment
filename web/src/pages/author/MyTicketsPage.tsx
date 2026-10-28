@@ -22,17 +22,25 @@ export function MyTicketsPage() {
         <ul className="ticket-list">
           {data.map((t) => (
             <li key={t.id}>
-              <Link to={`/tickets/${t.id}`} className="card ticket-row">
-                <div>
-                  <strong>{t.subject}</strong>
-                  <div className="muted small">
-                    #{t.id} · {t.bookTitle ?? "General / Account"} · <CategoryLabel category={t.category} />
+              <Link to={`/tickets/${t.id}`} className="card ticket-card">
+                <div className="ticket-row">
+                  <div>
+                    <strong>{t.subject}</strong>
+                    <div className="muted small">
+                      #{t.id} · {t.bookTitle ?? "General / Account"} · <CategoryLabel category={t.category} />
+                    </div>
+                  </div>
+                  <div className="ticket-row-right">
+                    <StatusBadge status={t.status} />
+                    <span className="muted small">Updated {formatDateTime(t.updatedAt)}</span>
                   </div>
                 </div>
-                <div className="ticket-row-right">
-                  <StatusBadge status={t.status} />
-                  <span className="muted small">Updated {formatDateTime(t.updatedAt)}</span>
-                </div>
+                <p className="clamp"><span className="muted">Your query: </span>{t.description}</p>
+                {t.latestReply ? (
+                  <p className="clamp reply-preview"><span className="muted">BookLeaf replied: </span>{t.latestReply}</p>
+                ) : (
+                  <p className="muted small">Waiting for a reply from our team. This list updates automatically.</p>
+                )}
               </Link>
             </li>
           ))}

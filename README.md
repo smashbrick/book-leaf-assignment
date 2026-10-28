@@ -27,7 +27,7 @@ The database also starts with 5 example tickets (based on the examples in the br
 **Author portal**
 - **My Books:** every book with ISBN, genre, publication date, status, MRP, copies sold and royalty earned / paid / pending. Books still in production show "Not yet" instead of zeros. A note at the top shows the next payout date, or that the balance is under the ₹1,000 minimum.
 - **Get help:** choose a book (or "General / Account level"), add a subject and description. The attachment picker is UI only, as the brief allows.
-- **My Tickets:** every ticket with its status and the team's replies. It updates live when an admin replies, with no refresh needed.
+- **My Tickets:** every ticket with its status, the original query and the team's latest reply. Click a ticket for the full conversation. It updates live when an admin replies, with no refresh needed.
 
 **Admin portal**
 - **Ticket queue:** all tickets, filterable by status, category, priority and date. Sorted with the most urgent and oldest first.
