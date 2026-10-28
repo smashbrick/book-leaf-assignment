@@ -10,7 +10,7 @@ import { KB, RESPONSE_EXAMPLES, sectionsFor, TONE_GUIDELINES } from "./knowledge
  * so providers with automatic prefix caching can reuse the start of it:
  *
  *   system  role, tone, rules  +  KB sections and examples for the category   (same for every ticket in a category)
- *   user    today's date, author/book facts, recent conversation             (unique per ticket)
+ *   user    today's date, author/book facts, the ticket, the latest reply    (unique per ticket)
  *
  * Only the category's KB slice is sent, and at most one earlier reply instead of the whole history.
  */

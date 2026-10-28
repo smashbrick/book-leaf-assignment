@@ -21,6 +21,10 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
     credentials: "same-origin",
   });
+  // Session expired (8h) while using the app: go back to the login page instead of showing errors.
+  if (res.status === 401 && path !== "/auth/login" && path !== "/auth/me") {
+    window.location.assign("/login");
+  }
   if (res.status === 204) return undefined as T;
   const json = await res.json().catch(() => null);
   if (!res.ok) {
