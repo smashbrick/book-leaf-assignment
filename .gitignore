@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+
+# Not part of the submission
+BookLeaf_Technical_Assignment_1.pdf
+# Personal interview prep: kept out of git so it never appears in the repo history
+INTERVIEW_PREP.md
