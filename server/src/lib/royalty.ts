@@ -23,7 +23,7 @@ export function nextPayoutDate(today: Date = new Date()): string {
 }
 
 /** The ₹1,000 minimum applies to the author's accumulated total across all their books. */
-export function royaltySummary(books: { royaltyPending: number; lastRoyaltyPayoutDate: string | null }[], today?: Date) {
+export function royaltySummary(books: { royaltyPending: number; lastRoyaltyPayoutDate: string | null }[]) {
   const totalPending = books.reduce((sum, b) => sum + b.royaltyPending, 0);
   const lastPayoutDate =
     books
@@ -35,7 +35,7 @@ export function royaltySummary(books: { royaltyPending: number; lastRoyaltyPayou
     totalPending,
     threshold: PAYOUT_THRESHOLD_INR,
     meetsThreshold: totalPending >= PAYOUT_THRESHOLD_INR,
-    nextPayoutBy: nextPayoutDate(today),
+    nextPayoutBy: nextPayoutDate(),
     lastPayoutDate,
   };
 }

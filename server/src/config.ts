@@ -29,7 +29,6 @@ if (!parsed.success) {
 export const config = {
   ...parsed.data,
   isProd: parsed.data.NODE_ENV === "production",
-  isTest: parsed.data.NODE_ENV === "test",
   // Hosted providers need a key; a local model (Ollama on localhost) doesn't.
   aiEnabled: Boolean(parsed.data.AI_API_KEY) || ["localhost", "127.0.0.1"].includes(new URL(parsed.data.AI_BASE_URL).hostname),
 };

@@ -1,4 +1,5 @@
 import { pool } from "../db/pool.js";
+import { getBook } from "../modules/books/books.repo.js";
 import { getTicket, listPendingTicketIds, saveClassification, setAiStatus } from "../modules/tickets/tickets.repo.js";
 import { publish } from "../realtime/bus.js";
 import { classifyTicket } from "./classifier.js";
@@ -16,10 +17,7 @@ export async function runClassification(ticketId: number): Promise<void> {
   if (!ticket) return;
 
   try {
-    const { rows } = ticket.bookId
-      ? await pool.query<{ title: string; status: string }>("SELECT title, status FROM books WHERE id = $1", [ticket.bookId])
-      : { rows: [] };
-    const book = rows[0];
+    const book = ticket.bookId ? await getBook(pool, ticket.bookId) : null;
     const result = await classifyTicket({
       ticketId,
       subject: ticket.subject,

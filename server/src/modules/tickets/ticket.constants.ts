@@ -1,4 +1,4 @@
-// Single source of truth for ticket enums. These must match the Postgres ENUM types in 001_init.sql.
+// Single source of truth for ticket enums. These must match the Postgres ENUM types in db/schema.sql.
 
 export const TICKET_STATUSES = ["open", "in_progress", "resolved", "closed"] as const;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];

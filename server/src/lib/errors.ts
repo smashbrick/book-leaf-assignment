@@ -18,7 +18,7 @@ export class HttpError extends Error {
   }
 }
 
-export const badRequest = (message: string, details?: unknown) => new HttpError(400, "BAD_REQUEST", message, details);
+export const badRequest = (message: string) => new HttpError(400, "BAD_REQUEST", message);
 export const unauthorized = (message = "Authentication required") => new HttpError(401, "UNAUTHORIZED", message);
 export const forbidden = (message = "You do not have access to this resource") => new HttpError(403, "FORBIDDEN", message);
 export const notFound = (what = "Resource") => new HttpError(404, "NOT_FOUND", `${what} not found`);

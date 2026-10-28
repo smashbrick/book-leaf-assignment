@@ -8,7 +8,6 @@ export const pool = new pg.Pool({
   connectionString: config.DATABASE_URL,
   // Managed providers' public endpoints require TLS; local Docker and private networks don't.
   ssl: config.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
-  max: 10,
 });
 
 export type Queryable = Pick<pg.Pool, "query">;
