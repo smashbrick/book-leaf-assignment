@@ -25,18 +25,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
+  // Drop cached data from the previous user, but keep the "me" query itself: removing it would
+  // disconnect the hook above, and the app would never see the new login.
+  const forgetPreviousUser = () => qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" });
+
   const value: AuthState = {
     user: me.data ?? null,
     loading: me.isPending,
     login: async (email, password) => {
       const { user } = await api<{ user: User }>("/auth/login", { method: "POST", body: { email, password } });
-      qc.clear(); // drop anything cached for a previous user
+      forgetPreviousUser();
       qc.setQueryData(["me"], user);
       return user;
     },
     logout: async () => {
       await api("/auth/logout", { method: "POST" });
-      qc.clear();
+      forgetPreviousUser();
       qc.setQueryData(["me"], null);
     },
   };

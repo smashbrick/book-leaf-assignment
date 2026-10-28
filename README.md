@@ -16,7 +16,7 @@ A support portal with two sides:
 | Admin | `admin@bookleaf.com` | `admin123` |
 | Admin | `support@bookleaf.com` | `admin123` |
 
-All 10 authors from the sample data can log in with their email and `author123`. The login page has buttons that fill these in.
+All 10 authors from the sample data can log in with their email and `author123`. The login page has **Author** and **Admin** tabs, each with buttons that fill in these accounts. (`/login?as=admin` opens the Admin tab directly.)
 
 The database also starts with 5 example tickets (based on the examples in the brief) so the admin queue isn't empty. They're classified by the AI when the server starts.
 
