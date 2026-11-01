@@ -6,6 +6,7 @@ services:
     name: bookleaf-support-portal
     runtime: node
     plan: free
+    region: singapore # closest free region to India; put the Neon database in Singapore too
     buildCommand: npm ci --include=dev && npm run build # dev deps (tsc, vite) are needed to build
     startCommand: npm start
     healthCheckPath: /api/v1/health
