@@ -129,8 +129,19 @@ describe("ticket management", () => {
     expect(ok.body.data.length).toBeGreaterThan(0);
   });
 
-  it("doesn't let authors reply through the staff endpoint", async () => {
+  it("lets authors follow up on their own tickets only, never as internal notes", async () => {
     const priya = await loginAs(PRIYA);
-    expect((await priya.post("/api/v1/tickets/5/messages").send({ body: "hi" })).status).toBe(403);
+    const admin = await loginAs(ADMIN);
+    // Ticket 5 is Priya's sample ticket; ticket 1 belongs to another author.
+    expect((await priya.post("/api/v1/tickets/1/messages").send({ body: "hi" })).status).toBe(404);
+
+    await admin.patch("/api/v1/tickets/5").send({ status: "resolved" });
+    const res = await priya.post("/api/v1/tickets/5/messages").send({ body: "Thanks, but it still shows the old bio.", internal: true });
+    expect(res.status).toBe(201);
+    expect(res.body.data.status).toBe("open"); // a follow-up reopens a resolved ticket
+    expect(res.body.data.messages.at(-1).kind).toBe("author");
+
+    await admin.patch("/api/v1/tickets/5").send({ status: "closed" });
+    expect((await priya.post("/api/v1/tickets/5/messages").send({ body: "One more thing" })).status).toBe(400);
   });
 });

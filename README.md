@@ -18,7 +18,7 @@ npm run db:reset         # tables + sample data
 npm run dev              # http://localhost:5173
 ```
 
-**Logins:** `priya.sharma@email.com` / `author123` (author) and `admin@bookleaf.com` / `admin123` (admin). Every author in the dataset uses `author123`, and the login page has one-click demo accounts.
+**Logins:** `priya.sharma@email.com` / `author123` (author) and `admin@bookleaf.com` / `admin123` (admin). Every author in the dataset uses `author123`, and the login page comes pre-filled with a demo account.
 
 **AI:** defaults to a local Ollama model (`ollama pull llama3.2`), so no key is needed. To use Gemini, Claude or OpenAI, set `AI_BASE_URL`, `AI_MODEL` and `AI_API_KEY` in `.env` (examples in `.env.example`). Without AI, tickets simply stay "Unclassified".
 
@@ -51,9 +51,9 @@ React + Vite frontend, Express + TypeScript API, Postgres. Express also serves t
 
 - Royalty quarters are calendar quarters, and the ₹1,000 minimum applies to an author's total across books.
 - "Today" is the real date, so the dataset's 2025 payouts can look overdue and get escalated.
-- Authors view replies but don't reply back. Admins assign tickets to themselves. Attachments are UI only.
+- Authors can reply on their own tickets. Replying reopens a Resolved ticket; a Closed ticket needs a new one. Admins assign tickets to themselves. Attachments are UI only.
 - Two demo admin accounts were added, since the dataset has none.
 
 ## With more time
 
-Real attachments, author replies and email notifications. A job queue for AI calls and Redis for multi-server live updates. Measuring AI accuracy on real past tickets.
+Real attachments and email notifications. A job queue for AI calls and Redis for multi-server live updates. Measuring AI accuracy on real past tickets.

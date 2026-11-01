@@ -90,6 +90,8 @@ export interface DraftInput {
   royalty: RoyaltySummary | null;
   /** Replies BookLeaf has already sent on this ticket, oldest first. */
   previousReplies: string[];
+  /** The author's messages since BookLeaf's latest reply, oldest first. */
+  authorFollowUps: string[];
   internalNotes: string[];
   today: string;
 }
@@ -110,8 +112,13 @@ export function buildDraftContext(input: DraftInput): string {
     `</ticket>`,
     // Only the latest earlier reply: enough to avoid repeating ourselves without resending the whole history.
     input.previousReplies.length ? `\n<previous_reply_from_bookleaf>\n${input.previousReplies.at(-1)}\n</previous_reply_from_bookleaf>` : "",
+    input.authorFollowUps.length ? `\n<author_follow_up>\n${input.authorFollowUps.join("\n\n")}\n</author_follow_up>` : "",
     ``,
-    input.previousReplies.length ? `Draft BookLeaf's follow-up reply to this ticket.` : `Draft BookLeaf's reply to this ticket.`,
+    input.authorFollowUps.length
+      ? `Draft BookLeaf's reply to the author's follow-up.`
+      : input.previousReplies.length
+        ? `Draft BookLeaf's follow-up reply to this ticket.`
+        : `Draft BookLeaf's reply to this ticket.`,
   ];
   return parts.filter(Boolean).join("\n");
 }

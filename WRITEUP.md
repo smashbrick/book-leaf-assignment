@@ -13,7 +13,7 @@ I also made sure the app keeps working when the AI doesn't. Tickets are saved be
 - The AI classification runs inside the server process rather than a job queue. That's fine at this size, and waiting tickets are picked up again after a restart.
 - Drafts are created when an admin opens a ticket and then saved, rather than for every ticket up front, so you only pay for drafts that get used.
 - I only used free AI: a local Ollama model by default and Gemini's free tier for testing. Any other provider works by changing config. The downside is that a small local model writes plainer replies than a bigger hosted one.
-- I skipped real file uploads, author replies and email notifications.
+- I skipped real file uploads and email notifications.
 
 ## Taking it to production
 1. Measure the AI on real past tickets and keep tracking how often admins change its category or priority (this is already stored).

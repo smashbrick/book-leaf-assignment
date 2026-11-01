@@ -87,12 +87,34 @@ export async function addStaffMessage(user: AuthUser, id: number, input: { body:
   return getTicketDetail(user, id);
 }
 
+/** Author follow-up on their own ticket. A resolved ticket goes back to Open; a closed one stays closed. */
+export async function addAuthorMessage(user: AuthUser, id: number, body: string) {
+  const ticket = await loadTicket(user, id);
+  if (ticket.status === "closed") throw badRequest("This ticket is closed. Please raise a new ticket.");
+  await withTransaction(async (db) => {
+    await repo.insertMessage(db, { ticketId: id, senderId: user.id, kind: "author", body });
+    if (ticket.status === "resolved") await repo.updateTicket(db, id, { status: "open" });
+    await repo.deleteDraft(db, id); // a saved draft no longer answers the latest message
+  });
+  publish({ type: "message.created", ticketId: id, authorId: ticket.authorId });
+  return getTicketDetail(user, id);
+}
+
 /** "Retry AI" after a failed classification. */
 export async function retryClassification(user: AuthUser, id: number) {
   await loadTicket(user, id);
   await repo.setAiStatus(pool, id, "pending");
   enqueueClassification(id);
   return getTicketDetail(user, id);
+}
+
+/** The author's messages after BookLeaf's latest reply (the first message is the description, so it's skipped). */
+function followUpsSinceLastReply(messages: repo.MessageRow[]): string[] {
+  let start = 1;
+  messages.forEach((m, i) => {
+    if (m.kind === "reply") start = i + 1;
+  });
+  return messages.slice(start).filter((m) => m.kind === "author").map((m) => m.body);
 }
 
 /**
@@ -120,6 +142,7 @@ export async function getOrCreateDraft(user: AuthUser, id: number, regenerate: b
       // Royalty figures only where they're relevant, to keep the prompt small.
       royalty: category === "royalty_payments" || category === "general_inquiry" ? royaltySummary(books) : null,
       previousReplies: messages.filter((m) => m.kind === "reply").map((m) => m.body),
+      authorFollowUps: followUpsSinceLastReply(messages),
       internalNotes: messages.filter((m) => m.kind === "internal_note").map((m) => m.body),
       today: new Date().toISOString().slice(0, 10),
     });

@@ -64,9 +64,15 @@ ticketsRouter.patch("/:id", requireRole("admin"), async (req, res) => {
   res.json({ data: await service.updateTicket(req.user!, id, parseBody(UpdateBody, req)) });
 });
 
-ticketsRouter.post("/:id/messages", requireRole("admin"), async (req, res) => {
+// Admins reply or add internal notes; authors add follow-ups to their own tickets (`internal` is ignored for them).
+ticketsRouter.post("/:id/messages", async (req, res) => {
   const { id } = parseParams(IdParams, req);
-  res.status(201).json({ data: await service.addStaffMessage(req.user!, id, parseBody(MessageBody, req)) });
+  const input = parseBody(MessageBody, req);
+  const ticket =
+    req.user!.role === "admin"
+      ? await service.addStaffMessage(req.user!, id, input)
+      : await service.addAuthorMessage(req.user!, id, input.body);
+  res.status(201).json({ data: ticket });
 });
 
 // AI draft: GET returns the saved draft (generating it the first time), POST generates a new one.

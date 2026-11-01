@@ -51,8 +51,9 @@ function ReplyBox({ ticket }: { ticket: StaffTicketDetail }) {
   const [text, setText] = useState("");
   const qc = useQueryClient();
   const send = useSendMessage(ticket.id);
-  // Only ask for a draft while the ticket still needs a first reply.
-  const needsReply = !ticket.messages.some((m) => m.kind === "reply") && ticket.status !== "closed";
+  // Only ask for a draft while the author is waiting on us: their message is the latest one the author can see.
+  const lastVisible = ticket.messages.filter((m) => m.kind !== "internal_note").at(-1);
+  const needsReply = lastVisible?.kind === "author" && ticket.status !== "closed";
   const draft = useDraft(ticket.id, needsReply);
   const regenerate = useRegenerateDraft(ticket.id);
 

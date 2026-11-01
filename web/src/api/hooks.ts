@@ -68,9 +68,10 @@ export const useCreateTicket = () =>
     api<{ data: AuthorTicketDetail }>("/tickets", { method: "POST", body }),
   );
 
+/** Admin reply/internal note, or an author's follow-up (authors leave `internal` out). */
 export const useSendMessage = (id: number) =>
-  useTicketMutation((body: { body: string; internal: boolean }) =>
-    api<{ data: StaffTicketDetail }>(`/tickets/${id}/messages`, { method: "POST", body }),
+  useTicketMutation((body: { body: string; internal?: boolean }) =>
+    api<{ data: StaffTicketDetail | AuthorTicketDetail }>(`/tickets/${id}/messages`, { method: "POST", body }),
   );
 
 export const useUpdateTicket = (id: number) =>

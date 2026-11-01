@@ -102,6 +102,24 @@ describe("drafts", () => {
     expect((await admin.post(`/api/v1/tickets/${id}/draft`)).body.data.body).toBe("Draft number 2");
   });
 
+  it("drafts against the author's follow-up, replacing the saved draft", async () => {
+    const id = await newTicket();
+    const calls = fakeAi(() => ({ content: "ok" }));
+    const admin = await loginAs(ADMIN);
+    await admin.post(`/api/v1/tickets/${id}/messages`).send({ body: "Could you confirm your bank details are linked?" });
+    await admin.get(`/api/v1/tickets/${id}/draft`);
+
+    const priya = await loginAs(PRIYA);
+    await priya.post(`/api/v1/tickets/${id}/messages`).send({ body: "Yes, I linked my HDFC account last week." });
+    await admin.get(`/api/v1/tickets/${id}/draft`);
+
+    expect(calls).toHaveLength(2); // the first draft was dropped when the author replied
+    const user = String(calls[1]!.messages[1]!.content);
+    expect(user).toContain("<author_follow_up>\nYes, I linked my HDFC account last week.");
+    expect(user).toContain("Could you confirm your bank details are linked?");
+    expect(user).not.toContain("<author_follow_up>\nI haven't received"); // the description isn't a follow-up
+  });
+
   it("sends the relevant policy and the book's real numbers, but no contact details", async () => {
     const id = await newTicket();
     const calls = fakeAi(() => ({ content: "ok" }));

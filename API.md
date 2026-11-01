@@ -28,7 +28,7 @@ Status codes: `400` invalid input · `401` not logged in · `403` wrong role · 
 | `POST /tickets` | author | Body `{ bookId \| null, subject, description }`. `bookId: null` means General / Account. Returns `201` with the ticket. AI classification happens afterwards. |
 | `GET /tickets/:id` | author (own), admin | The ticket with its `messages`. Admins also get internal notes, AI fields, and the author's `book` and `royalty` info. |
 | `PATCH /tickets/:id` | admin | Any of `{ status, category, priority, assigneeId }`. `assigneeId` must be your own ID (assign to yourself) or `null`. |
-| `POST /tickets/:id/messages` | admin | Body `{ body, internal }`. `internal: true` adds a staff-only note. Otherwise it's a reply the author sees, and the first reply moves the ticket from Open to In Progress. |
+| `POST /tickets/:id/messages` | author (own), admin | Body `{ body, internal }`. **Admins:** `internal: true` adds a staff-only note; otherwise it's a reply the author sees, and the first reply moves the ticket from Open to In Progress. **Authors:** adds a follow-up (`internal` is ignored). It reopens a Resolved ticket, clears the saved AI draft, and returns `400` on a Closed ticket. |
 | `GET /tickets/:id/draft` | admin | The AI draft `{ body }`. Created the first time, then served from the database. `503 AI_UNAVAILABLE` if the AI can't be reached. |
 | `POST /tickets/:id/draft` | admin | Generates a new draft (Regenerate). |
 | `POST /tickets/:id/classify` | admin | Retries AI classification after a failure. |
