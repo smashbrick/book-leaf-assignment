@@ -2,6 +2,8 @@
 
 A support portal for BookLeaf. Authors view their books and royalties and raise tickets. Admins work a ticket queue where AI suggests each ticket's category and priority and drafts a reply for them to edit and send.
 
+**Live demo:** https://bookleaf-support-portal-ze6i.onrender.com (logins below). It runs on free tiers, so the first load after a quiet spell takes about a minute while the server wakes up.
+
 See also: [WRITEUP.md](WRITEUP.md) (approach and trade-offs) · [API.md](API.md) (endpoints)
 
 ## Setup
@@ -31,6 +33,7 @@ React + Vite frontend, Express + TypeScript API, Postgres. Express also serves t
 - Sessions are JWTs in httpOnly cookies. Authors only receive their own data, and staff-only fields are stripped on the server.
 - Live updates use Server-Sent Events.
 - The AI's category and priority are stored next to the admin's, so overrides can be measured.
+- The live demo is one free Render web service (`render.yaml`) with Neon Postgres, both in Singapore. The server creates the tables and loads the sample data on first boot, and uses Gemini's free tier since free hosting can't run a local model.
 
 ## AI integration
 
