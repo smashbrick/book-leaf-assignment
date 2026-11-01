@@ -20,4 +20,4 @@ I also made sure the app keeps working when the AI doesn't. Tickets are saved be
 2. Give the AI better data, like payout history and production timelines, so replies can say "paid on 12 Feb" instead of asking the admin to check.
 3. Move the AI calls to a job queue, use Redis so live updates work across several servers, and add real attachments and email notifications.
 4. Suggest answers on the "Get help" form so common questions get answered before they become tickets.
-5. Let authors reply on tickets, and add response-time tracking for the team.
+5. Add response-time tracking for the team, so slow categories show up early.

@@ -43,7 +43,7 @@ React + Vite frontend, Express + TypeScript API, Postgres. Express also serves t
 
 **Failures.** Tickets are saved before the AI runs. If classification fails, the ticket shows as "Unclassified" near the top of the queue with a retry option. If drafting fails, the admin writes the reply. Rate limits are retried, and pending tickets are retried on restart.
 
-**Cost.** No call sends the full history or knowledge base. Drafts get one category's policy and the latest reply, category and priority come from a single call, and drafts are cached so reopening a ticket is free. Measured: ~1,850 tokens in and ~275 out per ticket, about $1.60 a month for 5,000 tickets on a small model, roughly 5x less than sending everything.
+**Cost.** No call sends the full history or knowledge base. Drafts get one category's policy, the latest reply and any author follow-up since then, category and priority come from a single call, and drafts are cached so reopening a ticket is free. Measured: ~1,850 tokens in and ~275 out per ticket, about $1.60 a month for 5,000 tickets on a small model, roughly 5x less than sending everything.
 
 **Model choice.** The model is configuration, not code. I defaulted to a local LLM (Ollama) to keep the project free and to learn from running one, and tested with Gemini's free tier. For BookLeaf I'd use whichever OpenAI-compatible provider you already use, or compare two or three small models on real past tickets and pick the cheapest one that's good enough. A small model is enough because the code supplies the facts.
 
@@ -54,6 +54,13 @@ React + Vite frontend, Express + TypeScript API, Postgres. Express also serves t
 - Authors can reply on their own tickets. Replying reopens a Resolved ticket; a Closed ticket needs a new one. Admins assign tickets to themselves. Attachments are UI only.
 - Two demo admin accounts were added, since the dataset has none.
 
+## Known limitations
+
+- The free hosting sleeps when idle (first load ~1 minute), and Gemini's free tier has per-minute limits, so a burst of new tickets can briefly stay "Unclassified" until retried.
+- Live updates and the AI job run inside one server process, so this runs as a single instance.
+- The schema is applied with a reset script, not migrations, which is fine for seed data but not for real data.
+- No login rate limiting, and a session can't be revoked before it expires (8 hours).
+
 ## With more time
 
-Real attachments and email notifications. A job queue for AI calls and Redis for multi-server live updates. Measuring AI accuracy on real past tickets.
+Real attachments and email notifications. A job queue for AI calls and Redis for multi-server live updates. Database migrations and login rate limiting. Measuring AI accuracy on real past tickets.

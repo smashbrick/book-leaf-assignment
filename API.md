@@ -18,13 +18,13 @@ Status codes: `400` invalid input · `401` not logged in · `403` wrong role · 
 ## Books
 | Endpoint | Who | Description |
 |---|---|---|
-| `GET /books` | author | Your books plus `royalty: { totalPending, threshold, meetsThreshold, nextPayoutBy, lastPayoutDate }`. Admins pass `?authorId=AUTH001`. |
+| `GET /books` | author, admin | Your books plus `royalty: { totalPending, threshold, meetsThreshold, nextPayoutBy, lastPayoutDate }`. Admins pass `?authorId=AUTH001`. |
 | `GET /books/:bookId` | author, admin | One book. Another author's book → `404`. |
 
 ## Tickets
 | Endpoint | Who | Description |
 |---|---|---|
-| `GET /tickets` | author, admin | Authors: their own tickets, each with `latestReply` (BookLeaf's most recent reply, or `null`). Admins: all tickets with AI fields and assignee, most urgent first. Filters: `status` (comma-separated, e.g. `open,in_progress`), `category`, `priority` (or `unclassified`), `from` and `to` (`YYYY-MM-DD`). |
+| `GET /tickets` | author, admin | Authors: their own tickets, each with `latestReply` (BookLeaf's most recent reply, or `null`). Admins: all tickets with AI fields and assignee, most urgent first. Filters: `status` (comma-separated, e.g. `open,in_progress`), `category`, `priority` (or `unclassified`; admins only, since priority is staff-only), `from` and `to` (`YYYY-MM-DD`, must be real dates). |
 | `POST /tickets` | author | Body `{ bookId \| null, subject, description }`. `bookId: null` means General / Account. Returns `201` with the ticket. AI classification happens afterwards. |
 | `GET /tickets/:id` | author (own), admin | The ticket with its `messages`. Admins also get internal notes, AI fields, and the author's `book` and `royalty` info. |
 | `PATCH /tickets/:id` | admin | Any of `{ status, category, priority, assigneeId }`. `assigneeId` must be your own ID (assign to yourself) or `null`. |
