@@ -1,0 +1,27 @@
+# Render Blueprint: one free web service (API + built React app).
+# Postgres comes from Neon's free tier: paste its connection string (with ?sslmode=require) as DATABASE_URL.
+# Tables and sample data are created on first boot when the database is empty.
+services:
+  - type: web
+    name: bookleaf-support-portal
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build # dev deps (tsc, vite) are needed to build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # set in the Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      # Free hosting can't run a local model, so the live demo uses Gemini's free tier.
+      - key: AI_API_KEY
+        sync: false # set in the Render dashboard
+      - key: AI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: AI_MODEL
+        value: gemini-flash-lite-latest
