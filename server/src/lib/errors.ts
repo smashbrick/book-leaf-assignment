@@ -47,6 +47,11 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(400).json({ error: { code: "INVALID_JSON", message: "Request body is not valid JSON" } });
     return;
   }
+  // Body over express.json()'s 100kb limit
+  if (err?.type === "entity.too.large") {
+    res.status(413).json({ error: { code: "PAYLOAD_TOO_LARGE", message: "Request body is too large" } });
+    return;
+  }
   // Anything else is a bug: log the details, but never leak internals to the client.
   console.error("[unhandled]", err);
   res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Something went wrong on our side" } });

@@ -130,6 +130,8 @@ describe("ticket management", () => {
     const priya = await loginAs(PRIYA);
     const emptyBook = await priya.post("/api/v1/tickets").send({ bookId: "", subject: "Hello there", description: "A description of at least twenty characters." });
     expect(emptyBook.status).toBe(400);
+    const huge = await request(app).post("/api/v1/auth/login").send({ email: "a@b.com", password: "x".repeat(200_000) });
+    expect(huge.status).toBe(413);
     const ok = await admin.get("/api/v1/tickets?status=open,in_progress&from=2020-01-01");
     expect(ok.status).toBe(200);
     expect(ok.body.data.length).toBeGreaterThan(0);

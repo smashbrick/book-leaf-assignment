@@ -6,7 +6,7 @@ Errors always look like:
 ```json
 { "error": { "code": "VALIDATION_ERROR", "message": "Request validation failed", "details": [{ "path": "subject", "message": "Subject must be at least 5 characters" }] } }
 ```
-Status codes: `400` invalid input · `401` not logged in · `403` wrong role · `404` not found (or not yours) · `503` AI unavailable.
+Status codes: `400` invalid input · `401` not logged in · `403` wrong role · `404` not found (or not yours) · `413` body over 100kb · `503` AI unavailable.
 
 ## Auth
 | Endpoint | Description |
