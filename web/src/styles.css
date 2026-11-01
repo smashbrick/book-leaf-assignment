@@ -105,7 +105,7 @@ textarea { resize: vertical; }
 
 .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-th, td { padding: 0.8rem 0.9rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+th, td { padding: 0.75rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: #fbf9f9; }
 tbody tr:hover td { background: #fdf9f9; }
 td.num, th.num { text-align: right; white-space: nowrap; }

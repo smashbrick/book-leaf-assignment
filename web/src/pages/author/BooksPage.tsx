@@ -55,7 +55,7 @@ export function BooksPage() {
                   <th>Status</th>
                   <th className="num">MRP</th>
                   <th className="num">Copies sold</th>
-                  <th className="num">Royalty earned</th>
+                  <th className="num">Earned</th>
                   <th className="num">Paid</th>
                   <th className="num">Pending</th>
                 </tr>
