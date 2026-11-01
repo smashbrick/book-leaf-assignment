@@ -18,7 +18,7 @@ npm run db:reset         # tables + sample data
 npm run dev              # http://localhost:5173
 ```
 
-**Logins:** `priya.sharma@email.com` / `author123` (author) and `admin@bookleaf.com` / `admin123` (admin). Every author in the dataset uses `author123`, and the login page comes pre-filled with a demo account.
+**Logins:** `priya.sharma@email.com` / `author123` (author) and `admin@bookleaf.com` / `admin123` (admin). Every author in the dataset uses `author123`, and the login page lists test accounts you can click to fill in.
 
 **AI:** defaults to a local Ollama model (`ollama pull llama3.2`), so no key is needed. To use Gemini, Claude or OpenAI, set `AI_BASE_URL`, `AI_MODEL` and `AI_API_KEY` in `.env` (examples in `.env.example`). Without AI, tickets simply stay "Unclassified".
 
