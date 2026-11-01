@@ -58,13 +58,15 @@ export function BooksPage() {
                   <th className="num">Royalty earned</th>
                   <th className="num">Paid</th>
                   <th className="num">Pending</th>
-                  <th />
                 </tr>
               </thead>
               <tbody>
                 {books.map((b) => (
                   <tr key={b.id}>
-                    <td><strong>{b.title}</strong></td>
+                    <td>
+                      <strong>{b.title}</strong>
+                      <div><Link to={`/tickets/new?bookId=${b.id}`} className="small">Ask about this book</Link></div>
+                    </td>
                     <td className="mono">{b.isbn ?? "—"}</td>
                     <td>{b.genre ?? "—"}</td>
                     <td>{isPublished(b) ? formatDate(b.publicationDate) : <span className="muted">Not yet</span>}</td>
@@ -76,9 +78,6 @@ export function BooksPage() {
                     <td className="num">{isPublished(b) ? inr(b.totalRoyaltyEarned) : "—"}</td>
                     <td className="num">{isPublished(b) ? inr(b.royaltyPaid) : "—"}</td>
                     <td className="num">{isPublished(b) ? inr(b.royaltyPending) : "—"}</td>
-                    <td>
-                      <Link to={`/tickets/new?bookId=${b.id}`} className="btn btn-link">Ask about this book</Link>
-                    </td>
                   </tr>
                 ))}
               </tbody>

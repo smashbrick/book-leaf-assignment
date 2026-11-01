@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useTicketEvents } from "../lib/useTicketEvents";
+import { Brand } from "./ui";
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -19,9 +20,7 @@ export function Layout() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          BookLeaf <span className="muted">{user?.role === "admin" ? "Support Desk" : "Author Support"}</span>
-        </div>
+        <Brand subtitle={user?.role === "admin" ? "Support Desk" : "Author Support"} />
         <nav>
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} end>

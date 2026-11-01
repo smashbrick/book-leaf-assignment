@@ -3,6 +3,18 @@ import { ApiError } from "../api/client";
 import type { Message, TicketCategory, TicketPriority, TicketStatus } from "../api/types";
 import { CATEGORY_LABELS, formatDateTime, PRIORITY_LABELS, STATUS_LABELS } from "../lib/format";
 
+/** Coral square + wordmark, styled after BookLeaf's site. */
+export function Brand({ subtitle }: { subtitle: string }) {
+  return (
+    <div className="brand">
+      <span className="brand-mark" aria-hidden="true" />
+      <span>
+        BookLeaf <span className="brand-sub">{subtitle}</span>
+      </span>
+    </div>
+  );
+}
+
 export function StatusBadge({ status }: { status: TicketStatus }) {
   return <span className={`badge status-${status}`}>{STATUS_LABELS[status]}</span>;
 }
