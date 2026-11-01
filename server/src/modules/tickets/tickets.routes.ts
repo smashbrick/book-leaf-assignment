@@ -7,8 +7,10 @@ import * as service from "./tickets.service.js";
 
 export const ticketsRouter = Router();
 
-const IdParams = z.object({ id: z.coerce.number().int().positive() });
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+// Capped at Postgres INTEGER's maximum, so a huge ID is a 400 here instead of a database error.
+const IdParams = z.object({ id: z.coerce.number().int().positive().max(2_147_483_647) });
+// Rejects impossible dates like 2026-02-30 too, which Postgres would otherwise fail on.
+const isoDate = z.iso.date("Use a real date in YYYY-MM-DD format");
 
 const ListQuery = z.object({
   // e.g. ?status=open,in_progress
@@ -24,7 +26,7 @@ const ListQuery = z.object({
 });
 
 const CreateBody = z.object({
-  bookId: z.string().max(20).nullable().default(null), // null = "General / Account level"
+  bookId: z.string().min(1).max(20).nullable().default(null), // null = "General / Account level"
   subject: z.string().trim().min(5, "Subject must be at least 5 characters").max(150),
   description: z.string().trim().min(20, "Please describe the issue in at least 20 characters").max(5000),
 });

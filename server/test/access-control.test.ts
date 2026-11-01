@@ -124,6 +124,12 @@ describe("ticket management", () => {
   it("validates queue filters", async () => {
     const admin = await loginAs(ADMIN);
     expect((await admin.get("/api/v1/tickets?status=bogus")).status).toBe(400);
+    // Inputs Postgres would reject must be 400s, never 500s.
+    expect((await admin.get("/api/v1/tickets?from=2026-02-30")).status).toBe(400);
+    expect((await admin.get("/api/v1/tickets/99999999999")).status).toBe(400);
+    const priya = await loginAs(PRIYA);
+    const emptyBook = await priya.post("/api/v1/tickets").send({ bookId: "", subject: "Hello there", description: "A description of at least twenty characters." });
+    expect(emptyBook.status).toBe(400);
     const ok = await admin.get("/api/v1/tickets?status=open,in_progress&from=2020-01-01");
     expect(ok.status).toBe(200);
     expect(ok.body.data.length).toBeGreaterThan(0);

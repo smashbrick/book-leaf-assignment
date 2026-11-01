@@ -28,8 +28,9 @@ async function loadTicket(user: AuthUser, id: number): Promise<repo.TicketRow> {
 }
 
 export async function listTickets(user: AuthUser, filters: repo.TicketFilters) {
-  // Authors only ever see their own tickets, whatever filters they send.
-  const rows = await repo.listTickets(pool, { ...filters, authorId: user.role === "author" ? user.authorId! : undefined });
+  // Authors only ever see their own tickets, whatever filters they send. Priority is staff-only, so authors can't filter by it.
+  const scoped = user.role === "author" ? { ...filters, authorId: user.authorId!, priority: undefined } : filters;
+  const rows = await repo.listTickets(pool, scoped);
   return rows.map((t) => viewFor(user, t));
 }
 
